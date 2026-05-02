@@ -8,6 +8,9 @@ import csv
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
+from docx import Document
+from docx.shared import Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 # ==================== 语言定义 ====================
@@ -480,6 +483,207 @@ def export_csv(results: Dict[str, Tuple[int, LineStats]], output_path: str) -> N
     print(f"已导出到 {output_path}")
 
 
+def collect_code_files(
+    directory: str,
+    extra_excludes: Optional[Set[str]] = None,
+) -> List[Tuple[str, str, LanguageConfig]]:
+    """
+    收集目录中所有代码文件的内容
+
+    参数:
+        directory: 要扫描的目录路径
+        extra_excludes: 额外的排除项
+
+    返回:
+        列表，每个元素为 (相对路径, 文件内容, 语言配置) 元组
+    """
+    # 合并排除规则
+    excludes = DEFAULT_EXCLUDE | load_ignore_file(directory)
+    if extra_excludes:
+        excludes |= extra_excludes
+
+    code_files: List[Tuple[str, str, LanguageConfig]] = []
+
+    for root, dirs, files in os.walk(directory):
+        # 跳过排除的目录
+        dirs[:] = [d for d in dirs if d not in excludes]
+
+        for filename in files:
+            if filename in excludes:
+                continue
+
+            filepath = os.path.join(root, filename)
+            lang = detect_language(filepath)
+            if lang is None:
+                continue
+
+            # 读取文件内容
+            try:
+                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                # 计算相对路径
+                rel_path = os.path.relpath(filepath, directory)
+                code_files.append((rel_path, content, lang))
+            except (OSError, UnicodeDecodeError):
+                pass
+
+    # 按语言分组，再按文件名排序
+    code_files.sort(key=lambda x: (x[2].name, x[0]))
+    return code_files
+
+
+def export_word(
+    directory: str,
+    output_path: str,
+    extra_excludes: Optional[Set[str]] = None,
+    max_pages: int = 60,
+) -> None:
+    """
+    将源代码导出为 Word 文档
+
+    参数:
+        directory: 项目根目录
+        output_path: 输出文件路径
+        extra_excludes: 额外的排除项
+        max_pages: 最大页数限制 (默认60页)
+    """
+    # 收集所有代码文件
+    code_files = collect_code_files(directory, extra_excludes)
+
+    if not code_files:
+        print("未找到可导出的代码文件。")
+        return
+
+    # 创建 Word 文档
+    doc = Document()
+
+    # 设置默认字体
+    style = doc.styles["Normal"]
+    style.font.name = "Courier New"
+    style.font.size = Pt(9)
+    style.paragraph_format.space_before = Pt(0)
+    style.paragraph_format.space_after = Pt(0)
+    style.paragraph_format.line_spacing = 1.0
+
+    # 添加标题
+    title = doc.add_heading("代码文档", level=0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # 添加项目信息
+    info_para = doc.add_paragraph()
+    info_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = info_para.add_run(f"项目路径: {os.path.abspath(directory)}")
+    run.font.size = Pt(12)
+
+    # 添加统计概览
+    doc.add_heading("统计概览", level=1)
+
+    # 按语言统计
+    lang_stats: Dict[str, Tuple[int, int]] = defaultdict(lambda: (0, 0))
+    for rel_path, content, lang in code_files:
+        line_count = content.count("\n") + 1
+        file_count, total_lines = lang_stats[lang.name]
+        lang_stats[lang.name] = (file_count + 1, total_lines + line_count)
+
+    # 创建概览表格
+    table = doc.add_table(rows=1, cols=3)
+    table.style = "Table Grid"
+    header_cells = table.rows[0].cells
+    header_cells[0].text = "语言"
+    header_cells[1].text = "文件数"
+    header_cells[2].text = "总行数"
+
+    # 设置表头样式
+    for cell in header_cells:
+        for paragraph in cell.paragraphs:
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            for run in paragraph.runs:
+                run.font.bold = True
+
+    # 添加统计数据行
+    total_files = 0
+    total_lines = 0
+    for lang_name, (count, lines) in sorted(lang_stats.items(), key=lambda x: x[1][1], reverse=True):
+        row_cells = table.add_row().cells
+        row_cells[0].text = lang_name
+        row_cells[1].text = str(count)
+        row_cells[2].text = str(lines)
+        # 设置居中对齐
+        for cell in row_cells[1:]:
+            for paragraph in cell.paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        total_files += count
+        total_lines += lines
+
+    # 添加汇总行
+    row_cells = table.add_row().cells
+    row_cells[0].text = "总计"
+    row_cells[1].text = str(total_files)
+    row_cells[2].text = str(total_lines)
+    for cell in row_cells:
+        for paragraph in cell.paragraphs:
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            for run in paragraph.runs:
+                run.font.bold = True
+
+    doc.add_page_break()
+
+    # 添加代码内容
+    doc.add_heading("代码内容", level=1)
+
+    # 每页大约30行代码 (考虑标题、间距等)
+    lines_per_page = 30
+    current_line_count = 0
+    max_lines = max_pages * lines_per_page
+
+    for rel_path, content, lang in code_files:
+        # 检查是否超过最大行数限制
+        file_lines = content.count("\n") + 1
+        if current_line_count + file_lines > max_lines:
+            # 计算剩余可用行数
+            remaining_lines = max_lines - current_line_count
+            if remaining_lines <= 0:
+                break
+            # 截断内容
+            lines = content.split("\n")
+            content = "\n".join(lines[:remaining_lines])
+            content += f"\n\n... [文件内容被截断，已达到{max_pages}页限制]"
+            file_lines = remaining_lines
+
+        # 添加文件标题
+        file_heading = doc.add_heading(f"{rel_path}", level=2)
+
+        # 添加语言标签
+        lang_para = doc.add_paragraph()
+        run = lang_para.add_run(f"语言: {lang.name}")
+        run.font.size = Pt(10)
+        run.font.color.rgb = RGBColor(100, 100, 100)
+
+        # 添加代码内容 (使用等宽字体)
+        code_para = doc.add_paragraph()
+        code_para.paragraph_format.space_before = Pt(6)
+        code_para.paragraph_format.space_after = Pt(12)
+        run = code_para.add_run(content)
+        run.font.name = "Courier New"
+        run.font.size = Pt(9)
+
+        current_line_count += file_lines
+
+        # 如果已达到限制，添加提示并退出
+        if current_line_count >= max_lines:
+            note_para = doc.add_paragraph()
+            run = note_para.add_run(f"\n[已达到{max_pages}页限制，后续文件已省略]")
+            run.font.color.rgb = RGBColor(255, 0, 0)
+            run.font.bold = True
+            break
+
+    # 保存文档
+    doc.save(output_path)
+    print(f"已导出到 {output_path}")
+    print(f"共导出 {min(len(code_files), len([f for f in code_files if True]))} 个文件")
+    print(f"总行数: {current_line_count}")
+
+
 # ==================== CLI ====================
 
 def main():
@@ -489,11 +693,12 @@ def main():
         description="代码量统计工具",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="示例:\n"
-               "  python codestat.py                # 统计当前目录\n"
-               "  python codestat.py src/           # 统计 src 目录\n"
-               "  python codestat.py . --exclude test build\n"
-               "  python codestat.py . --format json -o stats.json\n"
-               "  python codestat.py . --format csv  -o stats.csv\n",
+               "  python main.py                    # 统计当前目录\n"
+               "  python main.py src/               # 统计 src 目录\n"
+               "  python main.py . --exclude test build\n"
+               "  python main.py . --format json -o stats.json\n"
+               "  python main.py . --format csv  -o stats.csv\n"
+               "  python main.py . --format word -o code.docx\n",
     )
 
     # 位置参数: 要统计的目录 (可选，默认当前目录)
@@ -515,7 +720,7 @@ def main():
     # 可选参数: 输出格式
     parser.add_argument(
         "--format", "-f",
-        choices=["table", "json", "csv"],
+        choices=["table", "json", "csv", "word"],
         default="table",
         help="输出格式 (默认: table)",
     )
@@ -550,6 +755,9 @@ def main():
     elif args.format == "csv":
         output = args.output or "codestat.csv"
         export_csv(results, output)
+    elif args.format == "word":
+        output = args.output or "codestat.docx"
+        export_word(directory, output, extra_excludes)
 
     return 0
 

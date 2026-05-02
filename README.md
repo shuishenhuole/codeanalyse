@@ -6,19 +6,29 @@
 
 - 支持 40+ 种编程语言和文件格式
 - 区分代码行、注释行、空行
-- 支持终端表格、JSON、CSV 三种输出格式
+- 支持终端表格、JSON、CSV、Word 四种输出格式
 - 自动排除 `.git`、`node_modules` 等常见目录
 - 支持 `.codestatignore` 文件自定义排除规则
-- 纯标准库实现，无需安装第三方依赖
+- Word 导出支持最多60页代码内容
+
+## 安装依赖
+
+```bash
+# 使用 uv 安装
+uv pip install python-docx
+
+# 或使用 pip
+pip install python-docx
+```
 
 ## 快速开始
 
 ```bash
 # 统计当前目录
-python codestat.py
+python main.py
 
 # 统计指定目录
-python codestat.py src/
+python main.py src/
 ```
 
 ## 命令行参数
@@ -27,26 +37,29 @@ python codestat.py src/
 |------|------|------|--------|
 | `directory` | - | 要统计的目录路径 | 当前目录 |
 | `--exclude` | `-e` | 排除的目录或文件名 | - |
-| `--format` | `-f` | 输出格式: `table` / `json` / `csv` | `table` |
-| `--output` | `-o` | 输出文件路径 (json/csv 格式) | `codestat.json` / `codestat.csv` |
+| `--format` | `-f` | 输出格式: `table` / `json` / `csv` / `word` | `table` |
+| `--output` | `-o` | 输出文件路径 | `codestat.json` / `codestat.csv` / `codestat.docx` |
 
 ## 使用示例
 
 ```bash
 # 统计当前目录，终端表格输出
-python codestat.py
+python main.py
 
 # 统计 src 目录
-python codestat.py src/
+python main.py src/
 
 # 排除 test 和 docs 目录
-python codestat.py . --exclude test docs
+python main.py . --exclude test docs
 
 # 导出为 JSON 文件
-python codestat.py . --format json -o stats.json
+python main.py . --format json -o stats.json
 
 # 导出为 CSV 文件
-python codestat.py . --format csv -o stats.csv
+python main.py . --format csv -o stats.csv
+
+# 导出为 Word 文档 (最多60页)
+python main.py . --format word -o code.docx
 ```
 
 ## 输出示例
@@ -86,6 +99,15 @@ python codestat.py . --format csv -o stats.csv
 Language,Files,Code,Comment,Blank,Total
 Python,12,856,120,89,1065
 ```
+
+### Word 文档
+
+Word 导出会生成包含以下内容的文档：
+- 项目路径和统计概览表格
+- 按语言分组的代码内容
+- 每个文件包含文件路径和语言标签
+- 使用等宽字体 (Courier New) 格式化代码
+- 自动限制最多60页内容
 
 ## 排除规则
 
