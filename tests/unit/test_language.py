@@ -2,7 +2,7 @@
 
 import pytest
 
-from codestat.core.language import detect_language, LanguageConfig, LANGUAGES
+from code.core.language import detect_language, LanguageConfig, LANGUAGES
 
 
 class TestDetectLanguage:

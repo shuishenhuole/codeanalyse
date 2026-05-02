@@ -1,0 +1,747 @@
+[
+    {
+        "label": "runpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "runpy",
+        "description": "runpy",
+        "detail": "runpy",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "site",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "site",
+        "description": "site",
+        "detail": "site",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "argparse",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "argparse",
+        "description": "argparse",
+        "detail": "argparse",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Set",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Set",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Set",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "field",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "defaultdict",
+        "importPath": "collections",
+        "description": "collections",
+        "isExtraImport": true,
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
+        "label": "defaultdict",
+        "importPath": "collections",
+        "description": "collections",
+        "isExtraImport": true,
+        "detail": "collections",
+        "documentation": {}
+    },
+    {
+        "label": "csv",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "csv",
+        "description": "csv",
+        "detail": "csv",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "Document",
+        "importPath": "docx",
+        "description": "docx",
+        "isExtraImport": true,
+        "detail": "docx",
+        "documentation": {}
+    },
+    {
+        "label": "Pt",
+        "importPath": "docx.shared",
+        "description": "docx.shared",
+        "isExtraImport": true,
+        "detail": "docx.shared",
+        "documentation": {}
+    },
+    {
+        "label": "RGBColor",
+        "importPath": "docx.shared",
+        "description": "docx.shared",
+        "isExtraImport": true,
+        "detail": "docx.shared",
+        "documentation": {}
+    },
+    {
+        "label": "WD_ALIGN_PARAGRAPH",
+        "importPath": "docx.enum.text",
+        "description": "docx.enum.text",
+        "isExtraImport": true,
+        "detail": "docx.enum.text",
+        "documentation": {}
+    },
+    {
+        "label": "pytest",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pytest",
+        "description": "pytest",
+        "detail": "pytest",
+        "documentation": {}
+    },
+    {
+        "label": "scan_directory",
+        "importPath": "code.core.scanner",
+        "description": "code.core.scanner",
+        "isExtraImport": true,
+        "detail": "code.core.scanner",
+        "documentation": {}
+    },
+    {
+        "label": "detect_language",
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "isExtraImport": true,
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "LanguageConfig",
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "isExtraImport": true,
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "LANGUAGES",
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "isExtraImport": true,
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "detect_language",
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "isExtraImport": true,
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "LineStats",
+        "importPath": "code.core.stats",
+        "description": "code.core.stats",
+        "isExtraImport": true,
+        "detail": "code.core.stats",
+        "documentation": {}
+    },
+    {
+        "label": "count_lines",
+        "importPath": "code.core.stats",
+        "description": "code.core.stats",
+        "isExtraImport": true,
+        "detail": "code.core.stats",
+        "documentation": {}
+    },
+    {
+        "label": "bin_dir",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "bin_dir = os.path.dirname(abs_file)\nbase = bin_dir[: -len(\"Scripts\") - 1]  # strip away the bin part from the __file__, plus the path separator\n# prepend bin to PATH (this file is inside the bin directory)\nos.environ[\"PATH\"] = os.pathsep.join([bin_dir, *os.environ.get(\"PATH\", \"\").split(os.pathsep)])\nos.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"codeanalyse\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "base",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "base = bin_dir[: -len(\"Scripts\") - 1]  # strip away the bin part from the __file__, plus the path separator\n# prepend bin to PATH (this file is inside the bin directory)\nos.environ[\"PATH\"] = os.pathsep.join([bin_dir, *os.environ.get(\"PATH\", \"\").split(os.pathsep)])\nos.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"codeanalyse\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path)",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"PATH\"]",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "os.environ[\"PATH\"] = os.pathsep.join([bin_dir, *os.environ.get(\"PATH\", \"\").split(os.pathsep)])\nos.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"codeanalyse\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"VIRTUAL_ENV\"]",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "os.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"codeanalyse\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"VIRTUAL_ENV_PROMPT\"]",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "os.environ[\"VIRTUAL_ENV_PROMPT\"] = \"codeanalyse\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "prev_length",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "prev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "sys.path[:]",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "sys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "sys.real_prefix",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "sys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "sys.prefix",
+        "kind": 5,
+        "importPath": ".venv.Scripts.activate_this",
+        "description": ".venv.Scripts.activate_this",
+        "peekOfCode": "sys.prefix = base",
+        "detail": ".venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "create_parser",
+        "kind": 2,
+        "importPath": "code.cli.main",
+        "description": "code.cli.main",
+        "peekOfCode": "def create_parser() -> argparse.ArgumentParser:\n    \"\"\"\n    创建命令行参数解析器\n    返回:\n        argparse.ArgumentParser 对象\n    \"\"\"\n    parser = argparse.ArgumentParser(\n        description=\"代码量统计工具\",\n        formatter_class=argparse.RawDescriptionHelpFormatter,\n        epilog=\"示例:\\n\"",
+        "detail": "code.cli.main",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "code.cli.main",
+        "description": "code.cli.main",
+        "peekOfCode": "def main(args: Optional[list] = None) -> int:\n    \"\"\"\n    命令行主入口函数\n    参数:\n        args: 命令行参数列表 (用于测试，默认从 sys.argv 读取)\n    返回:\n        退出码 (0 表示成功，1 表示失败)\n    \"\"\"\n    parser = create_parser()\n    parsed_args = parser.parse_args(args)",
+        "detail": "code.cli.main",
+        "documentation": {}
+    },
+    {
+        "label": "LanguageConfig",
+        "kind": 6,
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "peekOfCode": "class LanguageConfig:\n    \"\"\"\n    语言配置类\n    属性:\n        name: 语言名称\n        extensions: 文件扩展名列表\n        line_comments: 行注释前缀\n        block_comment_start: 块注释开始标记\n        block_comment_end: 块注释结束标记\n    \"\"\"",
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "detect_language",
+        "kind": 2,
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "peekOfCode": "def detect_language(filepath: str) -> Optional[LanguageConfig]:\n    \"\"\"检测文件语言类型\"\"\"\n    import os\n    basename = os.path.basename(filepath).lower()\n    if basename in SPECIAL_FILES:\n        return SPECIAL_FILES[basename]\n    _, ext = os.path.splitext(basename)\n    return EXTENSION_MAP.get(ext)",
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "LANGUAGES",
+        "kind": 5,
+        "importPath": "code.core.language",
+        "description": "code.core.language",
+        "peekOfCode": "LANGUAGES = [\n    LanguageConfig(\"Python\", [\".py\", \".pyw\"], [\"#\"], \"'''\", \"'''\"),\n    LanguageConfig(\"JavaScript\", [\".js\", \".jsx\", \".mjs\", \".cjs\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"TypeScript\", [\".ts\", \".tsx\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"Java\", [\".java\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"C\", [\".c\", \".h\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"C++\", [\".cpp\", \".cxx\", \".cc\", \".hpp\", \".hxx\", \".hh\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"C#\", [\".cs\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"Go\", [\".go\"], [\"//\"], \"/*\", \"*/\"),\n    LanguageConfig(\"Rust\", [\".rs\"], [\"//\"], \"/*\", \"*/\"),",
+        "detail": "code.core.language",
+        "documentation": {}
+    },
+    {
+        "label": "load_ignore_file",
+        "kind": 2,
+        "importPath": "code.core.scanner",
+        "description": "code.core.scanner",
+        "peekOfCode": "def load_ignore_file(directory: str) -> Set[str]:\n    \"\"\"加载排除规则文件\"\"\"\n    ignore_file = os.path.join(directory, IGNORE_FILE_NAME)\n    excludes = set()\n    if os.path.isfile(ignore_file):\n        with open(ignore_file, \"r\", encoding=\"utf-8\") as f:\n            for line in f:\n                line = line.strip()\n                if line and not line.startswith(\"#\"):\n                    excludes.add(line)",
+        "detail": "code.core.scanner",
+        "documentation": {}
+    },
+    {
+        "label": "scan_directory",
+        "kind": 2,
+        "importPath": "code.core.scanner",
+        "description": "code.core.scanner",
+        "peekOfCode": "def scan_directory(\n    directory: str,\n    extra_excludes: Optional[Set[str]] = None,\n) -> Dict[str, Tuple[int, LineStats]]:\n    \"\"\"扫描目录，统计代码\"\"\"\n    excludes = DEFAULT_EXCLUDE | load_ignore_file(directory)\n    if extra_excludes:\n        excludes |= extra_excludes\n    results: Dict[str, Tuple[int, LineStats]] = defaultdict(lambda: (0, LineStats()))\n    for root, dirs, files in os.walk(directory):",
+        "detail": "code.core.scanner",
+        "documentation": {}
+    },
+    {
+        "label": "collect_code_files",
+        "kind": 2,
+        "importPath": "code.core.scanner",
+        "description": "code.core.scanner",
+        "peekOfCode": "def collect_code_files(\n    directory: str,\n    extra_excludes: Optional[Set[str]] = None,\n) -> List[Tuple[str, str, LanguageConfig]]:\n    \"\"\"收集代码文件内容\"\"\"\n    excludes = DEFAULT_EXCLUDE | load_ignore_file(directory)\n    if extra_excludes:\n        excludes |= extra_excludes\n    code_files: List[Tuple[str, str, LanguageConfig]] = []\n    for root, dirs, files in os.walk(directory):",
+        "detail": "code.core.scanner",
+        "documentation": {}
+    },
+    {
+        "label": "LineStats",
+        "kind": 6,
+        "importPath": "code.core.stats",
+        "description": "code.core.stats",
+        "peekOfCode": "class LineStats:\n    \"\"\"行统计结果\"\"\"\n    total: int = 0\n    code: int = 0\n    comment: int = 0\n    blank: int = 0\n    def __iadd__(self, other: \"LineStats\") -> \"LineStats\":\n        self.total += other.total\n        self.code += other.code\n        self.comment += other.comment",
+        "detail": "code.core.stats",
+        "documentation": {}
+    },
+    {
+        "label": "count_lines",
+        "kind": 2,
+        "importPath": "code.core.stats",
+        "description": "code.core.stats",
+        "peekOfCode": "def count_lines(filepath: str, lang: LanguageConfig) -> LineStats:\n    \"\"\"统计单个文件的行数\"\"\"\n    stats = LineStats()\n    in_block_comment = False\n    has_block_comment = bool(lang.block_comment_start and lang.block_comment_end)\n    try:\n        with open(filepath, \"r\", encoding=\"utf-8\", errors=\"ignore\") as f:\n            for line in f:\n                stats.total += 1\n                stripped = line.strip()",
+        "detail": "code.core.stats",
+        "documentation": {}
+    },
+    {
+        "label": "export_csv",
+        "kind": 2,
+        "importPath": "code.exporters.csv",
+        "description": "code.exporters.csv",
+        "peekOfCode": "def export_csv(results: Dict[str, Tuple[int, LineStats]], output_path: str) -> None:\n    \"\"\"导出为CSV\"\"\"\n    with open(output_path, \"w\", newline=\"\", encoding=\"utf-8\") as f:\n        writer = csv.writer(f)\n        writer.writerow([\"Language\", \"Files\", \"Code\", \"Comment\", \"Blank\", \"Total\"])\n        total_files = 0\n        total_stats = LineStats()\n        for name, (count, stats) in sorted(results.items(), key=lambda x: x[1][1].code, reverse=True):\n            writer.writerow([name, count, stats.code, stats.comment, stats.blank, stats.total])\n            total_files += count",
+        "detail": "code.exporters.csv",
+        "documentation": {}
+    },
+    {
+        "label": "export_json",
+        "kind": 2,
+        "importPath": "code.exporters.json",
+        "description": "code.exporters.json",
+        "peekOfCode": "def export_json(results: Dict[str, Tuple[int, LineStats]], output_path: str) -> None:\n    \"\"\"导出为JSON\"\"\"\n    data = []\n    total_files = 0\n    total_stats = LineStats()\n    for name, (count, stats) in sorted(results.items(), key=lambda x: x[1][1].code, reverse=True):\n        data.append({\n            \"language\": name,\n            \"files\": count,\n            \"code\": stats.code,",
+        "detail": "code.exporters.json",
+        "documentation": {}
+    },
+    {
+        "label": "print_table",
+        "kind": 2,
+        "importPath": "code.exporters.table",
+        "description": "code.exporters.table",
+        "peekOfCode": "def print_table(results: Dict[str, Tuple[int, LineStats]]) -> None:\n    \"\"\"终端表格输出\"\"\"\n    if not results:\n        print(\"未找到可统计的代码文件。\")\n        return\n    sorted_items = sorted(results.items(), key=lambda x: x[1][1].code, reverse=True)\n    name_width = max(len(name) for name, _ in sorted_items)\n    name_width = max(name_width, len(\"Language\"))\n    col_width = 8\n    header = (",
+        "detail": "code.exporters.table",
+        "documentation": {}
+    },
+    {
+        "label": "export_word",
+        "kind": 2,
+        "importPath": "code.exporters.word",
+        "description": "code.exporters.word",
+        "peekOfCode": "def export_word(\n    directory: str,\n    output_path: str,\n    extra_excludes: Optional[Set[str]] = None,\n) -> None:\n    \"\"\"导出为Word文档\"\"\"\n    code_files = collect_code_files(directory, extra_excludes)\n    if not code_files:\n        print(\"未找到可导出的代码文件。\")\n        return",
+        "detail": "code.exporters.word",
+        "documentation": {}
+    },
+    {
+        "label": "DEFAULT_EXCLUDE",
+        "kind": 5,
+        "importPath": "code.config",
+        "description": "code.config",
+        "peekOfCode": "DEFAULT_EXCLUDE = {\n    \".git\", \".svn\", \".hg\",\n    \"node_modules\",\n    \"__pycache__\", \".pytest_cache\",\n    \"venv\", \"env\", \".env\", \".venv\", \".tox\", \".eggs\",\n    \".idea\", \".vscode\", \".vs\",\n    \"dist\", \"build\", \"out\", \"target\",\n    \".gradle\", \".maven\",\n    \"vendor\", \"Pods\",\n    \"coverage\", \".nyc_output\",",
+        "detail": "code.config",
+        "documentation": {}
+    },
+    {
+        "label": "IGNORE_FILE_NAME",
+        "kind": 5,
+        "importPath": "code.config",
+        "description": "code.config",
+        "peekOfCode": "IGNORE_FILE_NAME = \".codestatignore\"\nMAX_WORD_PAGES = 60\nLINES_PER_PAGE = 30",
+        "detail": "code.config",
+        "documentation": {}
+    },
+    {
+        "label": "MAX_WORD_PAGES",
+        "kind": 5,
+        "importPath": "code.config",
+        "description": "code.config",
+        "peekOfCode": "MAX_WORD_PAGES = 60\nLINES_PER_PAGE = 30",
+        "detail": "code.config",
+        "documentation": {}
+    },
+    {
+        "label": "LINES_PER_PAGE",
+        "kind": 5,
+        "importPath": "code.config",
+        "description": "code.config",
+        "peekOfCode": "LINES_PER_PAGE = 30",
+        "detail": "code.config",
+        "documentation": {}
+    },
+    {
+        "label": "CodeStatError",
+        "kind": 6,
+        "importPath": "code.exceptions",
+        "description": "code.exceptions",
+        "peekOfCode": "class CodeStatError(Exception):\n    \"\"\"基础异常\"\"\"\n    pass\nclass InvalidDirectoryError(CodeStatError):\n    \"\"\"无效目录\"\"\"\n    pass\nclass FileReadError(CodeStatError):\n    \"\"\"文件读取错误\"\"\"\n    pass\nclass ExportError(CodeStatError):",
+        "detail": "code.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "InvalidDirectoryError",
+        "kind": 6,
+        "importPath": "code.exceptions",
+        "description": "code.exceptions",
+        "peekOfCode": "class InvalidDirectoryError(CodeStatError):\n    \"\"\"无效目录\"\"\"\n    pass\nclass FileReadError(CodeStatError):\n    \"\"\"文件读取错误\"\"\"\n    pass\nclass ExportError(CodeStatError):\n    \"\"\"导出错误\"\"\"\n    pass",
+        "detail": "code.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "FileReadError",
+        "kind": 6,
+        "importPath": "code.exceptions",
+        "description": "code.exceptions",
+        "peekOfCode": "class FileReadError(CodeStatError):\n    \"\"\"文件读取错误\"\"\"\n    pass\nclass ExportError(CodeStatError):\n    \"\"\"导出错误\"\"\"\n    pass",
+        "detail": "code.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "ExportError",
+        "kind": 6,
+        "importPath": "code.exceptions",
+        "description": "code.exceptions",
+        "peekOfCode": "class ExportError(CodeStatError):\n    \"\"\"导出错误\"\"\"\n    pass",
+        "detail": "code.exceptions",
+        "documentation": {}
+    },
+    {
+        "label": "TestScanDirectory",
+        "kind": 6,
+        "importPath": "tests.integration.test_scanner",
+        "description": "tests.integration.test_scanner",
+        "peekOfCode": "class TestScanDirectory:\n    \"\"\"目录扫描测试\"\"\"\n    def test_scan_basic(self, sample_directory):\n        \"\"\"测试基本扫描\"\"\"\n        results = scan_directory(str(sample_directory))\n        assert \"Python\" in results\n        assert \"JavaScript\" in results\n        py_count, py_stats = results[\"Python\"]\n        assert py_count == 1\n        assert py_stats.total > 0",
+        "detail": "tests.integration.test_scanner",
+        "documentation": {}
+    },
+    {
+        "label": "TestDetectLanguage",
+        "kind": 6,
+        "importPath": "tests.unit.test_language",
+        "description": "tests.unit.test_language",
+        "peekOfCode": "class TestDetectLanguage:\n    \"\"\"语言检测测试类\"\"\"\n    def test_detect_python(self):\n        \"\"\"测试 Python 文件检测\"\"\"\n        result = detect_language(\"test.py\")\n        assert result is not None\n        assert result.name == \"Python\"\n    def test_detect_javascript(self):\n        \"\"\"测试 JavaScript 文件检测\"\"\"\n        result = detect_language(\"app.js\")",
+        "detail": "tests.unit.test_language",
+        "documentation": {}
+    },
+    {
+        "label": "TestLanguageConfig",
+        "kind": 6,
+        "importPath": "tests.unit.test_language",
+        "description": "tests.unit.test_language",
+        "peekOfCode": "class TestLanguageConfig:\n    \"\"\"语言配置测试类\"\"\"\n    def test_python_has_block_comment(self):\n        \"\"\"测试 Python 块注释配置\"\"\"\n        for lang in LANGUAGES:\n            if lang.name == \"Python\":\n                assert lang.block_comment_start == \"'''\"\n                assert lang.block_comment_end == \"'''\"\n                assert \"#\" in lang.line_comments\n    def test_json_no_comments(self):",
+        "detail": "tests.unit.test_language",
+        "documentation": {}
+    },
+    {
+        "label": "TestLineStats",
+        "kind": 6,
+        "importPath": "tests.unit.test_stats",
+        "description": "tests.unit.test_stats",
+        "peekOfCode": "class TestLineStats:\n    \"\"\"LineStats 数据类测试\"\"\"\n    def test_initial_values(self):\n        \"\"\"测试初始值\"\"\"\n        stats = LineStats()\n        assert stats.total == 0\n        assert stats.code == 0\n        assert stats.comment == 0\n        assert stats.blank == 0\n    def test_iadd_operator(self):",
+        "detail": "tests.unit.test_stats",
+        "documentation": {}
+    },
+    {
+        "label": "TestCountLines",
+        "kind": 6,
+        "importPath": "tests.unit.test_stats",
+        "description": "tests.unit.test_stats",
+        "peekOfCode": "class TestCountLines:\n    \"\"\"行统计测试\"\"\"\n    def test_count_python_file(self, tmp_path):\n        \"\"\"测试 Python 文件行统计\"\"\"\n        py_file = tmp_path / \"test.py\"\n        py_file.write_text(\"\"\"# 注释行\ndef hello():\n    print(\"Hello\")\n# 另一个注释\nx = 1",
+        "detail": "tests.unit.test_stats",
+        "documentation": {}
+    },
+    {
+        "label": "hello",
+        "kind": 2,
+        "importPath": "tests.unit.test_stats",
+        "description": "tests.unit.test_stats",
+        "peekOfCode": "def hello():\n    print(\"Hello\")\n# 另一个注释\nx = 1\n\"\"\")\n        lang = detect_language(str(py_file))\n        stats = count_lines(str(py_file), lang)\n        assert stats.total >= 6\n        assert stats.blank >= 1\n        assert stats.comment >= 2",
+        "detail": "tests.unit.test_stats",
+        "documentation": {}
+    },
+    {
+        "label": "x",
+        "kind": 5,
+        "importPath": "tests.unit.test_stats",
+        "description": "tests.unit.test_stats",
+        "peekOfCode": "x = 1\n\"\"\")\n        lang = detect_language(str(py_file))\n        stats = count_lines(str(py_file), lang)\n        assert stats.total >= 6\n        assert stats.blank >= 1\n        assert stats.comment >= 2\n        assert stats.code >= 3\n    def test_count_empty_file(self, tmp_path):\n        \"\"\"测试空文件\"\"\"",
+        "detail": "tests.unit.test_stats",
+        "documentation": {}
+    },
+    {
+        "label": "sample_directory",
+        "kind": 2,
+        "importPath": "tests.conftest",
+        "description": "tests.conftest",
+        "peekOfCode": "def sample_directory(tmp_path):\n    \"\"\"\n    创建示例目录结构用于测试\n    参数:\n        tmp_path: pytest 提供的临时目录\n    返回:\n        临时目录路径\n    \"\"\"\n    # 创建 Python 文件\n    py_file = tmp_path / \"sample.py\"",
+        "detail": "tests.conftest",
+        "documentation": {}
+    },
+    {
+        "label": "hello",
+        "kind": 2,
+        "importPath": "tests.conftest",
+        "description": "tests.conftest",
+        "peekOfCode": "def hello():\n    print(\"Hello, World!\")\n# 另一个注释\ndef add(a, b):\n    return a + b\n\"\"\")\n    # 创建 JavaScript 文件\n    js_file = tmp_path / \"sample.js\"\n    js_file.write_text(\"\"\"\n// JavaScript comment",
+        "detail": "tests.conftest",
+        "documentation": {}
+    },
+    {
+        "label": "add",
+        "kind": 2,
+        "importPath": "tests.conftest",
+        "description": "tests.conftest",
+        "peekOfCode": "def add(a, b):\n    return a + b\n\"\"\")\n    # 创建 JavaScript 文件\n    js_file = tmp_path / \"sample.js\"\n    js_file.write_text(\"\"\"\n// JavaScript comment\nfunction greet() {\n    console.log(\"Hello\");\n}",
+        "detail": "tests.conftest",
+        "documentation": {}
+    }
+]

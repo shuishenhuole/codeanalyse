@@ -2,8 +2,8 @@
 
 import pytest
 
-from codestat.core.stats import LineStats, count_lines
-from codestat.core.language import detect_language
+from code.core.stats import LineStats, count_lines
+from code.core.language import detect_language
 
 
 class TestLineStats:

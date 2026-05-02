@@ -94,13 +94,13 @@ def main(args: Optional[list] = None) -> int:
         print(f"\n统计目录: {directory}\n")
         export_table(results)
     elif parsed_args.format == "json":
-        output = parsed_args.output or "codestat.json"
+        output = parsed_args.output or "code.json"
         export_json(results, output)
     elif parsed_args.format == "csv":
-        output = parsed_args.output or "codestat.csv"
+        output = parsed_args.output or "code.csv"
         export_csv(results, output)
     elif parsed_args.format == "word":
-        output = parsed_args.output or "codestat.docx"
+        output = parsed_args.output or "code.docx"
         export_word(directory, output, extra_excludes)
 
     return 0

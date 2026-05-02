@@ -2,7 +2,7 @@
 
 import pytest
 
-from codestat.core.scanner import scan_directory
+from code.core.scanner import scan_directory
 
 
 class TestScanDirectory:
