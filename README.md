@@ -2,6 +2,35 @@
 
 一个轻量级的 Python 命令行工具，用于统计项目中各编程语言的代码行数。
 
+## 项目结构
+
+```
+codestat/
+├── src/
+│   └── codestat/
+│       ├── __init__.py          # 包入口
+│       ├── __main__.py          # 模块入口
+│       ├── config.py            # 配置常量
+│       ├── exceptions.py        # 自定义异常
+│       ├── core/                # 核心模块
+│       │   ├── language.py      # 语言检测
+│       │   ├── stats.py         # 行统计
+│       │   └── scanner.py       # 目录扫描
+│       ├── exporters/           # 导出模块
+│       │   ├── table.py         # 终端表格
+│       │   ├── json.py          # JSON 导出
+│       │   ├── csv.py           # CSV 导出
+│       │   └── word.py          # Word 导出
+│       └── cli/                 # 命令行
+│           └── main.py          # CLI 入口
+├── tests/                       # 测试
+│   ├── unit/                    # 单元测试
+│   ├── integration/             # 集成测试
+│   └── conftest.py              # pytest 配置
+├── pyproject.toml               # 项目配置
+└── README.md
+```
+
 ## 特性
 
 - 支持 40+ 种编程语言和文件格式
@@ -11,24 +40,34 @@
 - 支持 `.codestatignore` 文件自定义排除规则
 - Word 导出支持最多60页代码内容
 
-## 安装依赖
-
-```bash
-# 使用 uv 安装
-uv pip install python-docx
-
-# 或使用 pip
-pip install python-docx
-```
-
 ## 快速开始
 
 ```bash
+# 安装项目
+uv sync
+
 # 统计当前目录
-python main.py
+python -m codestat
 
 # 统计指定目录
-python main.py src/
+python -m codestat src/
+
+# 或直接使用命令 (安装后)
+codestat
+codestat src/
+```
+
+## 运行测试
+
+```bash
+# 安装开发依赖
+uv sync --all-extras
+
+# 运行测试
+pytest tests/ -v
+
+# 运行测试并生成覆盖率报告
+pytest tests/ --cov=codestat
 ```
 
 ## 命令行参数
@@ -44,22 +83,22 @@ python main.py src/
 
 ```bash
 # 统计当前目录，终端表格输出
-python main.py
+python -m codestat
 
 # 统计 src 目录
-python main.py src/
+python -m codestat src/
 
 # 排除 test 和 docs 目录
-python main.py . --exclude test docs
+python -m codestat . --exclude test docs
 
 # 导出为 JSON 文件
-python main.py . --format json -o stats.json
+python -m codestat . --format json -o stats.json
 
 # 导出为 CSV 文件
-python main.py . --format csv -o stats.csv
+python -m codestat . --format csv -o stats.csv
 
 # 导出为 Word 文档 (最多60页)
-python main.py . --format word -o code.docx
+python -m codestat . --format word -o code.docx
 ```
 
 ## 输出示例
