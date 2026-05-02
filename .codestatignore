@@ -1,0 +1,39 @@
+# 代码量统计 - 排除规则
+# 每行一个目录或文件名，# 开头为注释
+
+# 版本控制
+.git
+.svn
+.hg
+
+# 依赖目录
+node_modules
+vendor
+Pods
+
+# Python
+__pycache__
+.pytest_cache
+venv
+env
+.tox
+.eggs
+*.egg-info
+
+# 编译输出
+dist
+build
+out
+target
+
+# IDE
+.idea
+.vscode
+.vs
+*.swp
+
+# 其他
+coverage
+.nyc_output
+.gradle
+.maven
