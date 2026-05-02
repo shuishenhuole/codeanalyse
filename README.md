@@ -6,28 +6,27 @@
 
 ```
 codestat/
-├── src/
-│   └── codestat/
-│       ├── __init__.py          # 包入口
-│       ├── __main__.py          # 模块入口
-│       ├── config.py            # 配置常量
-│       ├── exceptions.py        # 自定义异常
-│       ├── core/                # 核心模块
-│       │   ├── language.py      # 语言检测
-│       │   ├── stats.py         # 行统计
-│       │   └── scanner.py       # 目录扫描
-│       ├── exporters/           # 导出模块
-│       │   ├── table.py         # 终端表格
-│       │   ├── json.py          # JSON 导出
-│       │   ├── csv.py           # CSV 导出
-│       │   └── word.py          # Word 导出
-│       └── cli/                 # 命令行
-│           └── main.py          # CLI 入口
-├── tests/                       # 测试
-│   ├── unit/                    # 单元测试
-│   ├── integration/             # 集成测试
-│   └── conftest.py              # pytest 配置
-├── pyproject.toml               # 项目配置
+├── codestat/
+│   ├── __init__.py          # 包入口
+│   ├── __main__.py          # 模块入口
+│   ├── config.py            # 配置常量
+│   ├── exceptions.py        # 自定义异常
+│   ├── core/                # 核心模块
+│   │   ├── language.py      # 语言检测
+│   │   ├── stats.py         # 行统计
+│   │   └── scanner.py       # 目录扫描
+│   ├── exporters/           # 导出模块
+│   │   ├── table.py         # 终端表格
+│   │   ├── json.py          # JSON 导出
+│   │   ├── csv.py           # CSV 导出
+│   │   └── word.py          # Word 导出
+│   └── cli/                 # 命令行
+│       └── main.py          # CLI 入口
+├── tests/                   # 测试
+│   ├── unit/                # 单元测试
+│   ├── integration/         # 集成测试
+│   └── conftest.py          # pytest 配置
+├── pyproject.toml           # 项目配置
 └── README.md
 ```
 
