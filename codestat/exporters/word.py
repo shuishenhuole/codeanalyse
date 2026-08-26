@@ -39,11 +39,16 @@ from collections import defaultdict
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 
 from ..config import LINES_PER_PAGE, MAX_WORD_PAGES
 from ..core.language import LanguageConfig
 from ..core.scanner import collect_code_files
+
+# Word 文档使用的中文字体
+# 同时设置东亚字体，确保中文正确渲染
+WORD_FONT_NAME = "Noto Sans SC"
 
 
 def export_word(
@@ -63,7 +68,7 @@ def export_word(
     
     文档格式:
         - 标题: 居中对齐
-        - 代码: Courier New 等宽字体，9pt
+        - 代码: Noto Sans SC 字体，9pt
         - 表格: Table Grid 样式
         - 语言标签: 灰色小字
     
@@ -94,9 +99,10 @@ def export_word(
     doc = Document()
 
     # 设置默认样式
-    # 使用等宽字体便于代码阅读
+    # 使用指定字体便于代码阅读
     style = doc.styles["Normal"]
-    style.font.name = "Courier New"
+    style.font.name = WORD_FONT_NAME
+    _set_east_asia_font(style, WORD_FONT_NAME)
     style.font.size = Pt(9)
     style.paragraph_format.space_before = Pt(0)
     style.paragraph_format.space_after = Pt(0)
@@ -300,6 +306,22 @@ def _split_head_tail(
     return head_entries, middle_entries, tail_entries
 
 
+def _set_east_asia_font(element, font_name: str) -> None:
+    """
+    设置 Word 元素的东亚字体
+
+    python-docx 的 font.name 只设置西文字体，中文需要单独设置
+    w:eastAsia 属性才能正确渲染。
+
+    参数:
+        element: 样式或 run 对象
+        font_name: 字体名称
+    """
+    rpr = element._element.get_or_add_rPr()
+    rfonts = rpr.get_or_add_rFonts()
+    rfonts.set(qn("w:eastAsia"), font_name)
+
+
 def _write_code_file(doc: Document, rel_path: str, content: str, lang: LanguageConfig) -> None:
     """
     将单个代码文件写入 Word 文档
@@ -321,10 +343,11 @@ def _write_code_file(doc: Document, rel_path: str, content: str, lang: LanguageC
     run.font.size = Pt(10)
     run.font.color.rgb = RGBColor(100, 100, 100)
 
-    # 添加代码内容 (等宽字体)
+    # 添加代码内容 (指定字体)
     code_para = doc.add_paragraph()
     code_para.paragraph_format.space_before = Pt(6)
     code_para.paragraph_format.space_after = Pt(12)
     run = code_para.add_run(content)
-    run.font.name = "Courier New"
+    run.font.name = WORD_FONT_NAME
+    _set_east_asia_font(run, WORD_FONT_NAME)
     run.font.size = Pt(9)

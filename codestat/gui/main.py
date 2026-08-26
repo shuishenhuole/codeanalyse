@@ -47,7 +47,7 @@ QMainWindow {
 }
 
 * {
-    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    font-family: "Noto Sans SC", "Microsoft YaHei UI", "Segoe UI", sans-serif;
     font-size: 13px;
     color: #1F2430;
 }
