@@ -42,5 +42,6 @@ MAX_WORD_PAGES = 60
 
 # 每页预估行数
 # 用于计算 Word 文档内容截断点
-# 按 A4 页面、Noto Sans SC 9pt、单倍行距估算，每页约 60 行
-LINES_PER_PAGE = 60
+# 按 A4 页面、Noto Sans SC 9pt、单倍行距实测每页约 37 行
+# 取 35 留出余量，确保不超过 MAX_WORD_PAGES 页
+LINES_PER_PAGE = 35
