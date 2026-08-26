@@ -22,6 +22,10 @@ codestat/
 │   │   └── word.py          # Word 导出
 │   └── cli/                 # 命令行
 │       └── main.py          # CLI 入口
+│   └── gui/                 # 图形界面 (PySide6)
+│       ├── main.py          # GUI 主窗口
+│       └── __main__.py      # GUI 模块入口
+├── gui_run.py               # GUI 独立入口脚本
 ├── tests/                   # 测试
 │   ├── unit/                # 单元测试
 │   ├── integration/         # 集成测试
@@ -54,6 +58,12 @@ python -m codestat src/
 # 或直接使用命令 (安装后)
 codestat
 codestat src/
+
+# 启动图形界面 (GUI)
+python gui_run.py
+
+# 或作为模块启动 GUI
+python -m codestat.gui
 ```
 
 ## 运行测试
