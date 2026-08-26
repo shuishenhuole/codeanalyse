@@ -238,4 +238,6 @@ def export_word(
     
     # 输出提示信息
     print(f"已导出到 {output_path}")
-    print(f"总行数: {current_line_count}")
+    print(f"总行数: {total_lines}")
+    if current_line_count < total_lines:
+        print(f"提示: 内容已达 {MAX_WORD_PAGES} 页上限，文档中仅写入前 {current_line_count} 行")
