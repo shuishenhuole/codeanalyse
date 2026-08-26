@@ -36,13 +36,12 @@ Word 文档导出模块
 
 import os
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple
 
 from docx import Document
-from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt, RGBColor
 
-from ..config import MAX_WORD_PAGES, LINES_PER_PAGE
+from ..config import LINES_PER_PAGE, MAX_WORD_PAGES
 from ..core.language import LanguageConfig
 from ..core.scanner import collect_code_files
 
@@ -50,7 +49,7 @@ from ..core.scanner import collect_code_files
 def export_word(
     directory: str,
     output_path: str,
-    extra_excludes: Optional[Set[str]] = None,
+    extra_excludes: set[str] | None = None,
 ) -> None:
     """
     将源代码导出为 Word 文档
@@ -91,7 +90,7 @@ def export_word(
         return
 
     # ==================== 创建 Word 文档 ====================
-    
+
     doc = Document()
 
     # 设置默认样式
@@ -104,7 +103,7 @@ def export_word(
     style.paragraph_format.line_spacing = 1.0
 
     # ==================== 添加标题页 ====================
-    
+
     # 主标题
     title = doc.add_heading("代码文档", level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -116,11 +115,11 @@ def export_word(
     run.font.size = Pt(12)
 
     # ==================== 添加统计概览 ====================
-    
+
     doc.add_heading("统计概览", level=1)
 
     # 按语言统计文件数和行数
-    lang_stats: Dict[str, Tuple[int, int]] = defaultdict(lambda: (0, 0))
+    lang_stats: dict[str, tuple[int, int]] = defaultdict(lambda: (0, 0))
     for rel_path, content, lang in code_files:
         line_count = content.count("\n") + 1
         file_count, total_lines = lang_stats[lang.name]
@@ -129,7 +128,7 @@ def export_word(
     # 创建概览表格
     table = doc.add_table(rows=1, cols=3)
     table.style = "Table Grid"
-    
+
     # 设置表头
     header_cells = table.rows[0].cells
     header_cells[0].text = "语言"
@@ -151,12 +150,12 @@ def export_word(
         row_cells[0].text = lang_name
         row_cells[1].text = str(count)
         row_cells[2].text = str(lines)
-        
+
         # 数值列居中对齐
         for cell in row_cells[1:]:
             for paragraph in cell.paragraphs:
                 paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
+
         # 累加总计
         total_files += count
         total_lines += lines
@@ -166,7 +165,7 @@ def export_word(
     row_cells[0].text = "总计"
     row_cells[1].text = str(total_files)
     row_cells[2].text = str(total_lines)
-    
+
     # 总计行加粗居中
     for cell in row_cells:
         for paragraph in cell.paragraphs:
@@ -178,66 +177,154 @@ def export_word(
     doc.add_page_break()
 
     # ==================== 添加代码内容 ====================
-    
+
     doc.add_heading("代码内容", level=1)
 
-    # 计算行数限制
-    current_line_count = 0
+    # 计算单侧行数限制 (前/后各 MAX_WORD_PAGES 页)
     max_lines = MAX_WORD_PAGES * LINES_PER_PAGE
 
-    # 遍历每个代码文件
-    for rel_path, content, lang in code_files:
-        # 计算文件行数
-        file_lines = content.count("\n") + 1
-        
-        # 检查是否超过行数限制
-        if current_line_count + file_lines > max_lines:
-            # 计算剩余可用行数
-            remaining_lines = max_lines - current_line_count
-            if remaining_lines <= 0:
-                break
-            
-            # 截断内容
-            lines = content.split("\n")
-            content = "\n".join(lines[:remaining_lines])
-            content += f"\n\n... [文件内容被截断，已达到{MAX_WORD_PAGES}页限制]"
-            file_lines = remaining_lines
+    # 拆分文件为: 头部保留 / 中间省略 / 尾部保留
+    head_entries, middle_entries, tail_entries = _split_head_tail(code_files, max_lines)
 
-        # 添加文件标题 (二级标题)
-        file_heading = doc.add_heading(f"{rel_path}", level=2)
+    # 写入头部保留的文件
+    current_line_count = 0
+    for rel_path, content, lang, line_count in head_entries:
+        _write_code_file(doc, rel_path, content, lang)
+        current_line_count += line_count
 
-        # 添加语言标签 (灰色小字)
-        lang_para = doc.add_paragraph()
-        run = lang_para.add_run(f"语言: {lang.name}")
-        run.font.size = Pt(10)
-        run.font.color.rgb = RGBColor(100, 100, 100)
+    # 中间内容省略提示
+    if middle_entries:
+        omitted_files = len(middle_entries)
+        omitted_lines = sum(entry[3] for entry in middle_entries)
+        note_para = doc.add_paragraph()
+        run = note_para.add_run(
+            f"\n[中间省略 {omitted_files} 个文件共 {omitted_lines} 行代码，"
+            f"仅保留前后各 {MAX_WORD_PAGES} 页]"
+        )
+        run.font.color.rgb = RGBColor(255, 0, 0)
+        run.font.bold = True
+        doc.add_page_break()
 
-        # 添加代码内容 (等宽字体)
-        code_para = doc.add_paragraph()
-        code_para.paragraph_format.space_before = Pt(6)
-        code_para.paragraph_format.space_after = Pt(12)
-        run = code_para.add_run(content)
-        run.font.name = "Courier New"
-        run.font.size = Pt(9)
-
-        # 累加行数
-        current_line_count += file_lines
-
-        # 检查是否达到限制
-        if current_line_count >= max_lines:
-            # 添加截断提示 (红色加粗)
-            note_para = doc.add_paragraph()
-            run = note_para.add_run(f"\n[已达到{MAX_WORD_PAGES}页限制，后续文件已省略]")
-            run.font.color.rgb = RGBColor(255, 0, 0)
-            run.font.bold = True
-            break
+    # 写入尾部保留的文件
+    for rel_path, content, lang, line_count in tail_entries:
+        _write_code_file(doc, rel_path, content, lang)
+        current_line_count += line_count
 
     # ==================== 保存文档 ====================
-    
+
     doc.save(output_path)
-    
+
     # 输出提示信息
     print(f"已导出到 {output_path}")
     print(f"总行数: {total_lines}")
+    print(f"写入行数: {current_line_count}")
     if current_line_count < total_lines:
-        print(f"提示: 内容已达 {MAX_WORD_PAGES} 页上限，文档中仅写入前 {current_line_count} 行")
+        print(
+            f"提示: 代码超过 {MAX_WORD_PAGES * 2} 页，"
+            f"文档仅保留前后各 {MAX_WORD_PAGES} 页"
+        )
+
+
+def _split_head_tail(
+    code_files: list[tuple[str, str, LanguageConfig]],
+    max_lines: int,
+) -> tuple[list[tuple[str, str, LanguageConfig, int]], list[tuple[str, str, LanguageConfig, int]], list[tuple[str, str, LanguageConfig, int]]]:
+    """
+    将文件列表拆分为头部保留、中间省略、尾部保留三部分
+
+    每个条目为 (相对路径, 内容, 语言配置, 行数)。
+
+    规则:
+        - 总行数不超过 max_lines * 2 时全部保留 (head 含全部, 其余为空)
+        - 超出时 head 保留最前 max_lines 行, tail 保留最后 max_lines 行
+        - 单文件跨越边界时按行数截断内容
+
+    参数:
+        code_files: (相对路径, 内容, 语言配置) 元组列表
+        max_lines: 单侧最大行数
+
+    返回:
+        (head_entries, middle_entries, tail_entries) 三元组
+    """
+    # 计算每个文件的行数
+    entries = [
+        (rel_path, content, lang, content.count("\n") + 1)
+        for rel_path, content, lang in code_files
+    ]
+    total_lines = sum(entry[3] for entry in entries)
+
+    # 未超出限制: 全部保留
+    if total_lines <= max_lines * 2:
+        return entries, [], []
+
+    # ==================== 头部保留 ====================
+    head_entries: list[tuple[str, str, LanguageConfig, int]] = []
+    head_remaining = max_lines
+    for rel_path, content, lang, line_count in entries:
+        if head_remaining <= 0:
+            break
+        if line_count <= head_remaining:
+            head_entries.append((rel_path, content, lang, line_count))
+            head_remaining -= line_count
+        else:
+            # 单个文件部分截断
+            lines = content.split("\n")
+            head_entries.append(
+                (rel_path, "\n".join(lines[:head_remaining]), lang, head_remaining)
+            )
+            head_remaining = 0
+
+    # ==================== 尾部保留 ====================
+    tail_entries: list[tuple[str, str, LanguageConfig, int]] = []
+    tail_remaining = max_lines
+    for rel_path, content, lang, line_count in reversed(entries):
+        if tail_remaining <= 0:
+            break
+        if line_count <= tail_remaining:
+            tail_entries.append((rel_path, content, lang, line_count))
+            tail_remaining -= line_count
+        else:
+            # 单个文件部分截断
+            lines = content.split("\n")
+            tail_entries.append(
+                (rel_path, "\n".join(lines[-tail_remaining:]), lang, tail_remaining)
+            )
+            tail_remaining = 0
+    tail_entries.reverse()
+
+    # ==================== 中间省略 ====================
+    head_count = len(head_entries)
+    tail_count = len(tail_entries)
+    middle_entries = entries[head_count : len(entries) - tail_count]
+
+    return head_entries, middle_entries, tail_entries
+
+
+def _write_code_file(doc: Document, rel_path: str, content: str, lang: LanguageConfig) -> None:
+    """
+    将单个代码文件写入 Word 文档
+
+    包含文件标题、语言标签和等宽字体代码内容。
+
+    参数:
+        doc: Word 文档对象
+        rel_path: 文件相对路径
+        content: 文件内容
+        lang: 语言配置
+    """
+    # 添加文件标题 (二级标题)
+    doc.add_heading(f"{rel_path}", level=2)
+
+    # 添加语言标签 (灰色小字)
+    lang_para = doc.add_paragraph()
+    run = lang_para.add_run(f"语言: {lang.name}")
+    run.font.size = Pt(10)
+    run.font.color.rgb = RGBColor(100, 100, 100)
+
+    # 添加代码内容 (等宽字体)
+    code_para = doc.add_paragraph()
+    code_para.paragraph_format.space_before = Pt(6)
+    code_para.paragraph_format.space_after = Pt(12)
+    run = code_para.add_run(content)
+    run.font.name = "Courier New"
+    run.font.size = Pt(9)
