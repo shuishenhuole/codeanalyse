@@ -4,24 +4,31 @@ GUI 主程序
 该模块实现 CodeStat 的图形界面，使用 PySide6 (Qt) 构建。
 
 界面布局:
-    1. 顶部: 目录选择 + 排除项配置 + 扫描按钮
-    2. 中部: 统计结果表格
-    3. 底部: 导出按钮 (JSON / CSV / Word) + 状态栏
+    1. 顶部: 应用标题区域
+    2. 配置卡片: 目录选择 + 排除项 + 开始统计
+    3. 中部: 统计结果表格
+    4. 底部: 统计摘要 + 导出按钮 + 进度条
 
 后台扫描使用 QThread，避免大目录扫描时界面卡顿。
+界面通过 QSS 样式表实现现代化浅色主题。
 """
 
 import os
 
 from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
+    QFrame,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QMainWindow,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -31,6 +38,155 @@ from PySide6.QtWidgets import (
 
 from ..core import scan_directory
 from ..exporters import export_csv, export_json, export_word
+
+# ==================== 主题样式 ====================
+
+STYLE_SHEET = """
+QMainWindow {
+    background-color: #F4F6FB;
+}
+
+* {
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    font-size: 13px;
+    color: #1F2430;
+}
+
+#titleLabel {
+    font-size: 24px;
+    font-weight: 700;
+    background: transparent;
+}
+
+#subtitleLabel {
+    font-size: 12px;
+    color: #8A90A0;
+    background: transparent;
+}
+
+QFrame#card {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E7F0;
+    border-radius: 12px;
+}
+
+QLabel {
+    background: transparent;
+}
+
+#fieldLabel {
+    font-weight: 600;
+}
+
+QLineEdit {
+    background-color: #F8F9FE;
+    border: 1px solid #E4E7F0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    selection-background-color: #4F6DF5;
+}
+QLineEdit:focus {
+    border: 1px solid #4F6DF5;
+    background-color: #FFFFFF;
+}
+
+QPushButton {
+    background-color: #F0F2FA;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+QPushButton:hover {
+    background-color: #E3E7F7;
+}
+QPushButton:pressed {
+    background-color: #D6DBF0;
+}
+QPushButton:disabled {
+    background-color: #E9EBF0;
+    color: #A0A5B0;
+}
+
+#primaryBtn {
+    background-color: #4F6DF5;
+    color: #FFFFFF;
+    padding: 8px 24px;
+}
+#primaryBtn:hover {
+    background-color: #3D5BE0;
+}
+#primaryBtn:pressed {
+    background-color: #324CC9;
+}
+
+#exportJsonBtn {
+    background-color: #34C759;
+    color: #FFFFFF;
+}
+#exportJsonBtn:hover {
+    background-color: #2AB34F;
+}
+
+#exportCsvBtn {
+    background-color: #FF9F0A;
+    color: #FFFFFF;
+}
+#exportCsvBtn:hover {
+    background-color: #E88F06;
+}
+
+#exportWordBtn {
+    background-color: #0A84FF;
+    color: #FFFFFF;
+}
+#exportWordBtn:hover {
+    background-color: #0872E0;
+}
+
+QTableWidget {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E7F0;
+    border-radius: 8px;
+    gridline-color: #EEF0F8;
+    alternate-background-color: #F8F9FE;
+    selection-background-color: #4F6DF5;
+    selection-color: #FFFFFF;
+}
+QTableWidget::item {
+    padding: 6px 4px;
+}
+
+QHeaderView::section {
+    background-color: #E9EBF5;
+    color: #1F2430;
+    border: none;
+    border-bottom: 1px solid #D9DCE8;
+    padding: 8px;
+    font-weight: 600;
+}
+
+QProgressBar {
+    border: none;
+    border-radius: 3px;
+    background-color: #E9EBF5;
+}
+QProgressBar::chunk {
+    border-radius: 3px;
+    background-color: #4F6DF5;
+}
+
+#summaryLabel {
+    font-weight: 600;
+    color: #2A3F8F;
+    background: transparent;
+}
+
+QStatusBar {
+    background-color: #F4F6FB;
+    color: #8A90A0;
+}
+"""
 
 
 class ScanWorker(QThread):
@@ -66,11 +222,15 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("CodeStat - 代码量统计工具")
-        self.resize(900, 600)
+        self.resize(1024, 720)
+        self.setStyleSheet(STYLE_SHEET)
 
         self.worker: ScanWorker | None = None
+        self._results = {}
 
         self._init_ui()
+
+    # ==================== 界面构建 ====================
 
     def _init_ui(self) -> None:
         """构建界面"""
@@ -78,67 +238,115 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         root_layout = QVBoxLayout(central)
+        root_layout.setContentsMargins(24, 20, 24, 16)
+        root_layout.setSpacing(16)
 
-        # ==================== 顶部: 配置区域 ====================
+        # 标题区域
+        title = QLabel("CodeStat")
+        title.setObjectName("titleLabel")
+        root_layout.addWidget(title)
+
+        subtitle = QLabel("代码量统计工具 · 支持 40+ 种编程语言")
+        subtitle.setObjectName("subtitleLabel")
+        root_layout.addWidget(subtitle)
+
+        # 配置卡片
+        card = QFrame()
+        card.setObjectName("card")
+        self._add_shadow(card)
+        root_layout.addWidget(card)
+
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(20, 18, 20, 18)
+        card_layout.setSpacing(12)
 
         # 目录选择行
         dir_layout = QHBoxLayout()
-        dir_layout.addWidget(QLabel("统计目录:"))
+        dir_label = QLabel("统计目录")
+        dir_label.setObjectName("fieldLabel")
+        dir_layout.addWidget(dir_label)
+
         self.dir_edit = QLineEdit(os.getcwd())
         self.dir_edit.setPlaceholderText("选择要统计的目录")
         dir_layout.addWidget(self.dir_edit, stretch=1)
 
-        browse_btn = QPushButton("浏览...")
-        browse_btn.clicked.connect(self._browse_directory)
-        dir_layout.addWidget(browse_btn)
+        self.browse_btn = QPushButton("浏览...")
+        self.browse_btn.clicked.connect(self._browse_directory)
+        dir_layout.addWidget(self.browse_btn)
 
-        scan_btn = QPushButton("开始统计")
-        scan_btn.clicked.connect(self._start_scan)
-        dir_layout.addWidget(scan_btn)
+        self.scan_btn = QPushButton("开始统计")
+        self.scan_btn.setObjectName("primaryBtn")
+        self.scan_btn.clicked.connect(self._start_scan)
+        dir_layout.addWidget(self.scan_btn)
 
-        root_layout.addLayout(dir_layout)
+        card_layout.addLayout(dir_layout)
 
         # 排除项输入行
         exclude_layout = QHBoxLayout()
-        exclude_layout.addWidget(QLabel("排除项:"))
+        exclude_label = QLabel("排除项")
+        exclude_label.setObjectName("fieldLabel")
+        exclude_layout.addWidget(exclude_label)
+
         self.exclude_edit = QLineEdit()
         self.exclude_edit.setPlaceholderText("用空格分隔，例如: test docs dist")
         exclude_layout.addWidget(self.exclude_edit, stretch=1)
-        root_layout.addLayout(exclude_layout)
+        card_layout.addLayout(exclude_layout)
 
-        # ==================== 中部: 结果表格 ====================
-
+        # 结果表格
         self.table = QTableWidget(0, 6)
         self.table.setHorizontalHeaderLabels(["语言", "文件数", "代码行", "注释行", "空行", "总行数"])
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        for col in range(1, 6):
+            self.table.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeToContents)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False)
         root_layout.addWidget(self.table, stretch=1)
 
-        # ==================== 底部: 导出区域 ====================
+        # 底部: 摘要 + 进度条 + 导出按钮
+        bottom_layout = QHBoxLayout()
+        bottom_layout.setSpacing(12)
 
-        export_layout = QHBoxLayout()
-        export_layout.addStretch(1)
+        self.summary_label = QLabel("请选择目录后点击「开始统计」")
+        self.summary_label.setObjectName("summaryLabel")
+        bottom_layout.addWidget(self.summary_label, stretch=1)
 
-        json_btn = QPushButton("导出 JSON")
-        json_btn.clicked.connect(lambda: self._export("json"))
-        export_layout.addWidget(json_btn)
+        self.progress = QProgressBar()
+        self.progress.setFixedHeight(6)
+        self.progress.setRange(0, 0)
+        self.progress.setVisible(False)
+        bottom_layout.addWidget(self.progress)
 
-        csv_btn = QPushButton("导出 CSV")
-        csv_btn.clicked.connect(lambda: self._export("csv"))
-        export_layout.addWidget(csv_btn)
+        self.json_btn = QPushButton("导出 JSON")
+        self.json_btn.setObjectName("exportJsonBtn")
+        self.json_btn.clicked.connect(lambda: self._export("json"))
+        bottom_layout.addWidget(self.json_btn)
 
-        word_btn = QPushButton("导出 Word")
-        word_btn.clicked.connect(lambda: self._export("word"))
-        export_layout.addWidget(word_btn)
+        self.csv_btn = QPushButton("导出 CSV")
+        self.csv_btn.setObjectName("exportCsvBtn")
+        self.csv_btn.clicked.connect(lambda: self._export("csv"))
+        bottom_layout.addWidget(self.csv_btn)
 
-        root_layout.addLayout(export_layout)
+        self.word_btn = QPushButton("导出 Word")
+        self.word_btn.setObjectName("exportWordBtn")
+        self.word_btn.clicked.connect(lambda: self._export("word"))
+        bottom_layout.addWidget(self.word_btn)
 
-        # ==================== 状态栏 ====================
+        root_layout.addLayout(bottom_layout)
 
+        self._set_export_enabled(False)
         self.statusBar().showMessage("就绪")
 
-        self._results = {}
+    def _add_shadow(self, widget: QWidget) -> None:
+        """为控件添加柔和阴影"""
+        shadow = QGraphicsDropShadowEffect(widget)
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(3)
+        shadow.setColor(QColor(30, 40, 80, 30))
+        widget.setGraphicsEffect(shadow)
 
     # ==================== 事件处理 ====================
 
@@ -157,6 +365,12 @@ class MainWindow(QMainWindow):
             return set()
         return set(text.split())
 
+    def _set_export_enabled(self, enabled: bool) -> None:
+        """切换导出按钮可用状态"""
+        self.json_btn.setEnabled(enabled)
+        self.csv_btn.setEnabled(enabled)
+        self.word_btn.setEnabled(enabled)
+
     def _start_scan(self) -> None:
         """开始统计"""
         directory = self.dir_edit.text().strip()
@@ -167,6 +381,11 @@ class MainWindow(QMainWindow):
         if self.worker is not None and self.worker.isRunning():
             return
 
+        self.scan_btn.setEnabled(False)
+        self.browse_btn.setEnabled(False)
+        self._set_export_enabled(False)
+        self.progress.setVisible(True)
+        self.summary_label.setText("正在统计，请稍候...")
         self.statusBar().showMessage("正在统计，请稍候...")
         self._results = {}
 
@@ -178,9 +397,13 @@ class MainWindow(QMainWindow):
     def _on_scan_finished(self, results: dict) -> None:
         """扫描完成，填充表格"""
         self._results = results
+        self.scan_btn.setEnabled(True)
+        self.browse_btn.setEnabled(True)
+        self.progress.setVisible(False)
 
         if not results:
             self.table.setRowCount(0)
+            self.summary_label.setText("未找到可统计的代码文件")
             self.statusBar().showMessage("未找到可统计的代码文件")
             QMessageBox.information(self, "提示", "未找到可统计的代码文件")
             return
@@ -210,28 +433,38 @@ class MainWindow(QMainWindow):
             total_blank += stats.blank
             total_lines += stats.total
 
-        # 总计行
+        # 总计行 (加粗)
         total_row = len(sorted_items)
-        self._set_cell(total_row, 0, "总计")
-        self._set_cell(total_row, 1, str(total_files))
-        self._set_cell(total_row, 2, str(total_code))
-        self._set_cell(total_row, 3, str(total_comment))
-        self._set_cell(total_row, 4, str(total_blank))
-        self._set_cell(total_row, 5, str(total_lines))
+        self._set_cell(total_row, 0, "总计", bold=True)
+        self._set_cell(total_row, 1, str(total_files), bold=True)
+        self._set_cell(total_row, 2, str(total_code), bold=True)
+        self._set_cell(total_row, 3, str(total_comment), bold=True)
+        self._set_cell(total_row, 4, str(total_blank), bold=True)
+        self._set_cell(total_row, 5, str(total_lines), bold=True)
 
-        self.statusBar().showMessage(
-            f"统计完成: 共 {total_files} 个文件, {total_lines} 行"
+        self.summary_label.setText(
+            f"共 {total_files} 个文件 · {total_code} 行代码 · {total_comment} 行注释 · {total_blank} 行空行"
         )
+        self.statusBar().showMessage(f"统计完成: 共 {total_files} 个文件, {total_lines} 行")
+        self._set_export_enabled(True)
 
-    def _set_cell(self, row: int, col: int, text: str) -> None:
+    def _set_cell(self, row: int, col: int, text: str, bold: bool = False) -> None:
         """写入表格单元格"""
         item = QTableWidgetItem(text)
         if col > 0:
             item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        if bold:
+            font = item.font()
+            font.setBold(True)
+            item.setFont(font)
         self.table.setItem(row, col, item)
 
     def _on_scan_failed(self, error: str) -> None:
         """扫描失败"""
+        self.scan_btn.setEnabled(True)
+        self.browse_btn.setEnabled(True)
+        self.progress.setVisible(False)
+        self.summary_label.setText("统计失败")
         self.statusBar().showMessage("统计失败")
         QMessageBox.critical(self, "错误", f"统计失败:\n{error}")
 
