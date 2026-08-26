@@ -42,13 +42,9 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 
-from ..config import LINES_PER_PAGE, MAX_WORD_PAGES
+from ..config import FILE_OVERHEAD_LINES, LINES_PER_PAGE, MAX_WORD_PAGES, WORD_FONT_NAME
 from ..core.language import LanguageConfig
 from ..core.scanner import collect_code_files
-
-# Word 文档使用的中文字体
-# 同时设置东亚字体，确保中文正确渲染
-WORD_FONT_NAME = "Noto Sans SC"
 
 
 def export_word(
@@ -201,7 +197,7 @@ def export_word(
     # 中间内容省略提示
     if middle_entries:
         omitted_files = len(middle_entries)
-        omitted_lines = sum(entry[3] for entry in middle_entries)
+        omitted_lines = sum(entry[3] - FILE_OVERHEAD_LINES for entry in middle_entries)
         note_para = doc.add_paragraph()
         run = note_para.add_run(
             f"\n[中间省略 {omitted_files} 个文件共 {omitted_lines} 行代码，"
@@ -253,47 +249,56 @@ def _split_head_tail(
         (head_entries, middle_entries, tail_entries) 三元组
     """
     # 计算每个文件的行数
-    entries = [
-        (rel_path, content, lang, content.count("\n") + 1)
+    # 每个文件在文档中还有标题、语言标签、段落间距等固定开销，
+    # 按等效行数折算参与页数控制，避免小文件过多时实际页数超出预期
+    eff_entries = [
+        (rel_path, content, lang, content.count("\n") + 1 + FILE_OVERHEAD_LINES)
         for rel_path, content, lang in code_files
     ]
-    total_lines = sum(entry[3] for entry in entries)
+    total_eff_lines = sum(entry[3] for entry in eff_entries)
 
-    # 未超出限制: 全部保留
-    if total_lines <= max_lines * 2:
-        return entries, [], []
+    # 未超出限制: 全部保留 (返回真实代码行数)
+    if total_eff_lines <= max_lines * 2:
+        return [
+            (rel_path, content, lang, content.count("\n") + 1)
+            for rel_path, content, lang in code_files
+        ], [], []
 
     # ==================== 头部保留 ====================
     head_entries: list[tuple[str, str, LanguageConfig, int]] = []
     head_remaining = max_lines
-    for rel_path, content, lang, line_count in entries:
+    for rel_path, content, lang, effective_count in eff_entries:
         if head_remaining <= 0:
             break
-        if line_count <= head_remaining:
-            head_entries.append((rel_path, content, lang, line_count))
-            head_remaining -= line_count
+        code_lines = content.count("\n") + 1
+        if effective_count <= head_remaining:
+            head_entries.append((rel_path, content, lang, code_lines))
+            head_remaining -= effective_count
         else:
-            # 单个文件部分截断
+            # 单个文件部分截断 (仅截代码行, 开销行不算)
             lines = content.split("\n")
+            keep = min(code_lines, head_remaining)
             head_entries.append(
-                (rel_path, "\n".join(lines[:head_remaining]), lang, head_remaining)
+                (rel_path, "\n".join(lines[:keep]), lang, keep)
             )
             head_remaining = 0
 
     # ==================== 尾部保留 ====================
     tail_entries: list[tuple[str, str, LanguageConfig, int]] = []
     tail_remaining = max_lines
-    for rel_path, content, lang, line_count in reversed(entries):
+    for rel_path, content, lang, effective_count in reversed(eff_entries):
         if tail_remaining <= 0:
             break
-        if line_count <= tail_remaining:
-            tail_entries.append((rel_path, content, lang, line_count))
-            tail_remaining -= line_count
+        code_lines = content.count("\n") + 1
+        if effective_count <= tail_remaining:
+            tail_entries.append((rel_path, content, lang, code_lines))
+            tail_remaining -= effective_count
         else:
-            # 单个文件部分截断
+            # 单个文件部分截断 (仅截代码行, 开销行不算)
             lines = content.split("\n")
+            keep = min(code_lines, tail_remaining)
             tail_entries.append(
-                (rel_path, "\n".join(lines[-tail_remaining:]), lang, tail_remaining)
+                (rel_path, "\n".join(lines[-keep:]), lang, keep)
             )
             tail_remaining = 0
     tail_entries.reverse()
@@ -301,7 +306,7 @@ def _split_head_tail(
     # ==================== 中间省略 ====================
     head_count = len(head_entries)
     tail_count = len(tail_entries)
-    middle_entries = entries[head_count : len(entries) - tail_count]
+    middle_entries = eff_entries[head_count : len(eff_entries) - tail_count]
 
     return head_entries, middle_entries, tail_entries
 

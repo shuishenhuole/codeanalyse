@@ -43,5 +43,13 @@ MAX_WORD_PAGES = 60
 # 每页预估行数
 # 用于计算 Word 文档内容截断点
 # 按 A4 页面、Noto Sans SC 9pt、单倍行距实测每页约 37 行
-# 取 35 留出余量，确保不超过 MAX_WORD_PAGES 页
-LINES_PER_PAGE = 35
+# (每个文件另有固定开销折算，见 FILE_OVERHEAD_LINES)
+LINES_PER_PAGE = 37
+
+# Word 文档使用的中文字体
+# 同时设置东亚字体，确保中文正确渲染
+WORD_FONT_NAME = "Noto Sans SC"
+
+# 每个文件在 Word 文档中的固定开销 (标题 + 语言标签 + 段落间距)
+# 折算为等效代码行数，用于页数控制估算
+FILE_OVERHEAD_LINES = 7
