@@ -14,6 +14,7 @@ GUI 主程序
 """
 
 import os
+import re
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QColor
@@ -288,7 +289,7 @@ class MainWindow(QMainWindow):
         exclude_layout.addWidget(exclude_label)
 
         self.exclude_edit = QLineEdit()
-        self.exclude_edit.setPlaceholderText("用空格分隔，例如: test docs dist")
+        self.exclude_edit.setPlaceholderText("用空格或逗号分隔，可填目录名/文件名/后缀，例如: tests, md, py")
         exclude_layout.addWidget(self.exclude_edit, stretch=1)
         card_layout.addLayout(exclude_layout)
 
@@ -359,11 +360,14 @@ class MainWindow(QMainWindow):
             self.dir_edit.setText(directory)
 
     def _parse_excludes(self) -> set[str]:
-        """解析排除项输入"""
-        text = self.exclude_edit.text().strip()
-        if not text:
-            return set()
-        return set(text.split())
+        """解析排除项输入 (支持空格/逗号/分号分隔，含中文标点)"""
+        text = self.exclude_edit.text()
+        excludes = set()
+        for token in re.split(r"[,，;；\s]+", text):
+            token = token.strip().strip("/\\")
+            if token:
+                excludes.add(token)
+        return excludes
 
     def _set_export_enabled(self, enabled: bool) -> None:
         """切换导出按钮可用状态"""

@@ -77,6 +77,45 @@ def load_ignore_file(directory: str) -> Set[str]:
     return excludes
 
 
+def _merge_excludes(
+    directory: str,
+    extra_excludes: set[str] | None,
+) -> tuple[set[str], set[str]]:
+    """
+    合并排除规则
+
+    合并顺序: DEFAULT_EXCLUDE -> .codestatignore -> extra_excludes
+
+    返回:
+        (排除项集合, 小写排除项集合) 二元组，
+        小写集合用于文件后缀的大小写不敏感匹配
+    """
+    excludes = DEFAULT_EXCLUDE | load_ignore_file(directory)
+    if extra_excludes:
+        excludes |= extra_excludes
+    return excludes, {e.lower() for e in excludes}
+
+
+def _is_file_excluded(
+    filename: str,
+    excludes: set[str],
+    lower_excludes: set[str],
+) -> bool:
+    """
+    判断文件是否被排除
+
+    规则:
+        - 文件名精确匹配 (如 README.md)
+        - 文件后缀匹配 (如 md / .md / MD，大小写不敏感)
+    """
+    if filename in excludes:
+        return True
+    ext = os.path.splitext(filename)[1].lower()
+    if not ext:
+        return False
+    return ext in lower_excludes or ext[1:] in lower_excludes
+
+
 def scan_directory(
     directory: str,
     extra_excludes: Optional[Set[str]] = None,
@@ -98,7 +137,12 @@ def scan_directory(
         1. DEFAULT_EXCLUDE: 默认排除的目录
         2. .codestatignore: 用户自定义排除规则
         3. extra_excludes: 命令行参数指定的排除项
-    
+
+    排除项形式:
+        - 目录名: 精确匹配 (如 tests)
+        - 文件名: 精确匹配 (如 README.md)
+        - 文件后缀: 大小写不敏感 (如 md / .md / MD)
+
     示例:
         >>> results = scan_directory("./src")
         >>> for lang, (count, stats) in results.items():
@@ -107,9 +151,7 @@ def scan_directory(
         JavaScript: 8 文件, 432 行代码
     """
     # 合并排除规则
-    excludes = DEFAULT_EXCLUDE | load_ignore_file(directory)
-    if extra_excludes:
-        excludes |= extra_excludes
+    excludes, lower_excludes = _merge_excludes(directory, extra_excludes)
 
     # 初始化结果字典
     # 使用 defaultdict 自动创建初始统计对象
@@ -123,8 +165,8 @@ def scan_directory(
 
         # 遍历当前目录的文件
         for filename in files:
-            # 跳过排除的文件
-            if filename in excludes:
+            # 跳过排除的文件 (按文件名或后缀)
+            if _is_file_excluded(filename, excludes, lower_excludes):
                 continue
 
             # 构建完整文件路径
@@ -179,9 +221,7 @@ def collect_code_files(
         utils.js: 567 字符, JavaScript
     """
     # 合并排除规则
-    excludes = DEFAULT_EXCLUDE | load_ignore_file(directory)
-    if extra_excludes:
-        excludes |= extra_excludes
+    excludes, lower_excludes = _merge_excludes(directory, extra_excludes)
 
     # 初始化结果列表
     code_files: List[Tuple[str, str, LanguageConfig]] = []
@@ -193,8 +233,8 @@ def collect_code_files(
 
         # 遍历当前目录的文件
         for filename in files:
-            # 跳过排除的文件
-            if filename in excludes:
+            # 跳过排除的文件 (按文件名或后缀)
+            if _is_file_excluded(filename, excludes, lower_excludes):
                 continue
 
             # 构建完整文件路径
