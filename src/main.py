@@ -1,13 +1,15 @@
 """
 Flet 图形界面主程序
 
-该模块实现 CodeStat 的桌面界面，使用 Flet 构建，Dark Developer Dashboard 风格。
+该模块实现 CodeStat 的桌面界面，使用 Flet 构建，遵循《CodeStat UI 美化设计规范 v1.0》：
+现代极简、专业深色模式、高信噪比。
 
 设计规范:
-    - 页面背景 #0B1020，卡片 #111A2D，输入框 #141F35
-    - 主强调色 #4F83FF，主文字 #E8EEFC，次级文字 #8D9BB8
-    - 面板圆角 16px，统计卡片 13px，输入框/按钮 10px，低对比度细边框
-    - 侧边栏 280px，输入框高 42px，卡片间距 18px
+    - 全局背景 #13171D，侧边栏/面板 #1A1F26，卡片/容器 #212833
+    - 主色调 #3B82F6，主文字 #F3F4F6，次级文字 #9CA3AF，边框 #374151
+    - 统计数值 48px Bold，标签 14px Regular，图标 24px 主色调浅色版
+    - 圆角统一 8px（输入框/按钮）与 12px（卡片），卡片 1px 半透明白边框
+    - 卡片间距 20px，卡片内边距 24px
 
 后台扫描使用 threading.Thread，结果通过 page.run_thread 回主线程更新界面。
 """
@@ -23,38 +25,35 @@ from codestat.exporters import export_csv, export_json, export_word
 
 # ==================== 主题配色 ====================
 
-BG_COLOR = "#0B1020"
-CARD_BG = "#111A2D"
-FIELD_BG = "#141F35"
-CARD_BORDER = "#1E2B47"
-TEXT_COLOR = "#E8EEFC"
-SUBTEXT_COLOR = "#8D9BB8"
-MUTED_COLOR = "#4A5878"
-PRIMARY_COLOR = "#4F83FF"
-
-# 数据分类识别色 (仅用于统计磁贴图标与数值)
-STAT_COLORS = {
-    "files": "#4F83FF",
-    "code": "#3DDC97",
-    "comment": "#FFB74D",
-    "blank": "#8D9BB8",
-}
+BG_COLOR = "#13171D"          # 全局背景（极深蓝灰）
+PANEL_BG = "#1A1F26"          # 侧边栏/面板
+CARD_BG = "#212833"           # 卡片/容器
+FIELD_BG = "#13171D"          # 输入框（下沉感）
+CARD_BORDER = "#374151"       # 边框/分割线
+CARD_GLOW = "#2A3341"         # 卡片半透明细边框的近似色
+TEXT_COLOR = "#F3F4F6"        # 主标题/数值文字
+SUBTEXT_COLOR = "#9CA3AF"     # 次级/正文文字
+MUTED_COLOR = "#6B7280"       # 占位/弱化文字
+PRIMARY_COLOR = "#3B82F6"     # 主色调
+PRIMARY_HOVER = "#5B93F7"     # 主按钮 Hover 提亮
+ICON_COLOR = "#93B4F5"        # 主色调浅色版（图标统一色）
+BTN_SECONDARY_TEXT = "#D1D5DB"  # 次级按钮文字
 
 TABLE_COLUMNS = ["语言", "文件数", "代码行", "注释行", "空行", "总行数"]
 
 # 输入框边框 (默认/聚焦两态)
 FIELD_BORDER = {
     ft.ControlState.DEFAULT: ft.OutlineInputBorder(
-        border_radius=10, side=ft.BorderSide(1, CARD_BORDER)
+        border_radius=8, side=ft.BorderSide(1, CARD_BORDER)
     ),
     ft.ControlState.FOCUSED: ft.OutlineInputBorder(
-        border_radius=10, side=ft.BorderSide(1.5, PRIMARY_COLOR)
+        border_radius=8, side=ft.BorderSide(1.5, PRIMARY_COLOR)
     ),
 }
 
 
 def _dark_text_field(hint_text: str, prefix_icon: str, value: str = "") -> ft.TextField:
-    """构建深色风格输入框 (高 42px)"""
+    """构建深色风格输入框 (高 42px，圆角 8px)"""
     return ft.TextField(
         value=value,
         hint_text=hint_text,
@@ -77,55 +76,45 @@ def _section_label(text: str) -> ft.Text:
 
 
 def _stat_tile(kind: str, label: str, icon: str) -> tuple[ft.Control, ft.Text]:
-    """构建概览统计磁贴，返回 (磁贴控件, 数值文本)"""
-    color = STAT_COLORS[kind]
+    """构建概览统计卡片：图标 24px + 数值 48px + 标签 14px"""
     value = ft.Text(
-        "0", key=f"stat-{kind}", size=30, weight=ft.FontWeight.BOLD, color=MUTED_COLOR
+        "0", key=f"stat-{kind}", size=48, weight=ft.FontWeight.BOLD, color=MUTED_COLOR
     )
     tile = ft.Container(
-        content=ft.Row(
-            spacing=14,
+        content=ft.Column(
+            spacing=6,
             controls=[
-                ft.Container(
-                    content=ft.Icon(icon, color=color, size=20),
-                    bgcolor=ft.Colors.with_opacity(0.12, color),
-                    border_radius=10,
-                    padding=10,
-                ),
-                ft.Column(
-                    spacing=2,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    controls=[
-                        value,
-                        ft.Text(label, size=12.5, color=SUBTEXT_COLOR),
-                    ],
-                ),
+                ft.Icon(icon, size=24, color=ICON_COLOR, opacity=0.8),
+                value,
+                ft.Text(label, size=14, color=SUBTEXT_COLOR),
             ],
         ),
         expand=True,
         bgcolor=CARD_BG,
-        border=ft.Border.all(1, CARD_BORDER),
-        border_radius=13,
-        padding=ft.Padding(18, 16, 18, 16),
+        border=ft.Border.all(1, CARD_GLOW),
+        border_radius=12,
+        padding=24,
     )
     return tile, value
 
 
-def _export_button(label: str, icon: str, key: str) -> ft.OutlinedButton:
-    """构建统一的次级描边导出按钮"""
-    return ft.OutlinedButton(
+def _export_button(label: str, icon: str, key: str) -> ft.TextButton:
+    """构建导出按钮组内的扁平按钮"""
+    return ft.TextButton(
         label,
         icon=icon,
         key=key,
         style=ft.ButtonStyle(
-            color=TEXT_COLOR,
+            color=BTN_SECONDARY_TEXT,
             icon_color=SUBTEXT_COLOR,
-            side=ft.BorderSide(1, CARD_BORDER),
-            bgcolor=ft.Colors.with_opacity(0.0, CARD_BG),
             padding=ft.Padding(14, 8, 14, 8),
-            shape=ft.RoundedRectangleBorder(radius=10),
         ),
     )
+
+
+def _group_divider() -> ft.Container:
+    """导出按钮组内的细分隔线"""
+    return ft.Container(width=1, height=24, bgcolor=CARD_BORDER)
 
 
 def main(page: ft.Page):
@@ -146,8 +135,8 @@ def main(page: ft.Page):
 
     # ==================== 轻提示 (SnackBar) ====================
 
-    snack_text = ft.Text("", size=13, color="#0B1020")
-    snack = ft.SnackBar(snack_text, duration=2500, bgcolor="#D9E4FF")
+    snack_text = ft.Text("", size=13, color=BG_COLOR)
+    snack = ft.SnackBar(snack_text, duration=2500, bgcolor="#DCE5F5")
     page.overlay.append(snack)
 
     def toast(message: str) -> None:
@@ -168,17 +157,16 @@ def main(page: ft.Page):
     dir_edit = _dark_text_field("选择要统计的目录", ft.Icons.FOLDER_OPEN, value=os.getcwd())
     exclude_edit = _dark_text_field("目录名/文件名/后缀，空格或逗号分隔", ft.Icons.BLOCK)
 
-    browse_btn = ft.FilledButton(
+    browse_btn = ft.OutlinedButton(
         "浏览",
         icon=ft.Icons.FOLDER_OPEN,
         style=ft.ButtonStyle(
-            bgcolor=FIELD_BG,
-            color=SUBTEXT_COLOR,
+            color=BTN_SECONDARY_TEXT,
             icon_color=SUBTEXT_COLOR,
             side=ft.BorderSide(1, CARD_BORDER),
-            elevation=0,
+            bgcolor=ft.Colors.with_opacity(0.0, CARD_BG),
             padding=ft.Padding(14, 10, 14, 10),
-            shape=ft.RoundedRectangleBorder(radius=10),
+            shape=ft.RoundedRectangleBorder(radius=8),
         ),
     )
 
@@ -188,9 +176,15 @@ def main(page: ft.Page):
         key="scan",
         expand=True,
         style=ft.ButtonStyle(
-            bgcolor=PRIMARY_COLOR, color="#0B1020", elevation=0,
+            bgcolor={
+                ft.ControlState.DEFAULT: PRIMARY_COLOR,
+                ft.ControlState.HOVERED: PRIMARY_HOVER,
+            },
+            color="#FFFFFF",
+            icon_color="#FFFFFF",
+            elevation=0,
             padding=ft.Padding(16, 12, 16, 12),
-            shape=ft.RoundedRectangleBorder(radius=10),
+            shape=ft.RoundedRectangleBorder(radius=8),
         ),
     )
 
@@ -201,7 +195,7 @@ def main(page: ft.Page):
 
     sidebar = ft.Container(
         width=280,
-        bgcolor=CARD_BG,
+        bgcolor=PANEL_BG,
         border=ft.Border(right=ft.BorderSide(1, CARD_BORDER)),
         padding=ft.Padding(20, 22, 20, 16),
         content=ft.Column(
@@ -239,7 +233,7 @@ def main(page: ft.Page):
         ),
     )
 
-    # ==================== 概览磁贴 ====================
+    # ==================== 概览统计卡片 ====================
 
     files_tile, stat_files = _stat_tile("files", "文件数", ft.Icons.DESCRIPTION)
     code_tile, stat_code = _stat_tile("code", "代码行", ft.Icons.CODE)
@@ -252,32 +246,36 @@ def main(page: ft.Page):
         columns=[ft.DataColumn(ft.Text(name)) for name in TABLE_COLUMNS],
         rows=[],
         column_spacing=40,
-        heading_row_color=ft.Colors.with_opacity(0.06, PRIMARY_COLOR),
+        heading_row_color=ft.Colors.with_opacity(0.04, "#FFFFFF"),
         heading_text_style=ft.TextStyle(
-            weight=ft.FontWeight.BOLD, color=PRIMARY_COLOR, size=13
+            weight=ft.FontWeight.BOLD, color=SUBTEXT_COLOR, size=13
         ),
         data_text_style=ft.TextStyle(color=TEXT_COLOR, size=13),
-        horizontal_lines=ft.BorderSide(1, CARD_BORDER),
+        horizontal_lines=ft.BorderSide(1, CARD_GLOW),
         horizontal_margin=8,
     )
 
-    hint_text = ft.Text("请选择目录后点击「开始统计」", size=13, color=SUBTEXT_COLOR)
+    hint_text = ft.Text(
+        "请选择目录后点击「开始统计」", size=14, color=SUBTEXT_COLOR
+    )
     empty_view = ft.Container(
         content=ft.Column(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=10,
             controls=[
                 ft.Container(
-                    content=ft.Icon(ft.Icons.FOLDER_ZIP, size=30, color=PRIMARY_COLOR),
-                    bgcolor=ft.Colors.with_opacity(0.10, PRIMARY_COLOR),
-                    border_radius=16,
-                    padding=16,
+                    content=ft.Icon(ft.Icons.FOLDER_ZIP, size=32, color=ICON_COLOR),
+                    width=72,
+                    height=72,
+                    bgcolor=ft.Colors.with_opacity(0.12, PRIMARY_COLOR),
+                    border_radius=999,
+                    alignment=ft.Alignment.CENTER,
                 ),
-                ft.Text("暂无统计数据", size=16, weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
+                ft.Text("暂无统计数据", size=18, weight=ft.FontWeight.W_500, color=TEXT_COLOR),
                 hint_text,
                 ft.Text(
                     "统计完成后可导出 JSON / CSV / Word",
-                    size=11.5, color=MUTED_COLOR,
+                    size=12.5, color=MUTED_COLOR,
                 ),
             ],
         ),
@@ -298,6 +296,21 @@ def main(page: ft.Page):
     ]
     json_btn, csv_btn, word_btn = export_buttons
 
+    export_group = ft.Container(
+        content=ft.Row(
+            spacing=0,
+            controls=[
+                json_btn, _group_divider(),
+                csv_btn, _group_divider(),
+                word_btn,
+            ],
+        ),
+        bgcolor=CARD_BG,
+        border=ft.Border.all(1, CARD_BORDER),
+        border_radius=8,
+        padding=ft.Padding(2, 2, 2, 2),
+    )
+
     results_card = ft.Container(
         content=ft.Column(
             spacing=16,
@@ -307,8 +320,8 @@ def main(page: ft.Page):
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Text("统计结果", size=15, weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
-                        ft.Row(spacing=10, controls=export_buttons),
+                        ft.Text("统计结果", size=18, weight=ft.FontWeight.W_500, color="#E5E7EB"),
+                        export_group,
                     ],
                 ),
                 empty_view,
@@ -317,18 +330,18 @@ def main(page: ft.Page):
         ),
         expand=True,
         bgcolor=CARD_BG,
-        border=ft.Border.all(1, CARD_BORDER),
-        border_radius=16,
-        padding=20,
+        border=ft.Border.all(1, CARD_GLOW),
+        border_radius=12,
+        padding=24,
     )
 
     main_area = ft.Container(
         content=ft.Column(
-            spacing=18,
+            spacing=20,
             expand=True,
             controls=[
-                ft.Text("统计概览", size=19, weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
-                ft.Row(spacing=16, controls=[files_tile, code_tile, comment_tile, blank_tile]),
+                ft.Text("统计概览", size=24, weight=ft.FontWeight.W_600, color=TEXT_COLOR),
+                ft.Row(spacing=20, controls=[files_tile, code_tile, comment_tile, blank_tile]),
                 results_card,
             ],
         ),
@@ -361,7 +374,7 @@ def main(page: ft.Page):
             btn.opacity = 1.0 if (not busy and has_results) else 0.45
 
     def update_stats(totals: list[int] | None) -> None:
-        """更新概览统计磁贴数值 (未统计时显示轻量占位 0)"""
+        """更新概览统计卡片数值 (未统计时显示弱化占位 0)"""
         values = ["0"] * 4 if totals is None else [str(t) for t in totals[:4]]
         color = MUTED_COLOR if totals is None else TEXT_COLOR
         for value, text in zip(
@@ -444,7 +457,7 @@ def main(page: ft.Page):
                     cell(v, numeric=j > 0, bold=True)
                     for j, v in enumerate(["总计", *[str(t) for t in totals]])
                 ],
-                color=ft.Colors.with_opacity(0.10, PRIMARY_COLOR),
+                color=ft.Colors.with_opacity(0.12, PRIMARY_COLOR),
             )
         )
         table.rows = rows
