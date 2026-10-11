@@ -10,26 +10,26 @@ Word 文档导出模块
     1. 标题页
        - 文档标题: "代码文档"
        - 项目路径信息
-    
+
     2. 统计概览
        - 按语言汇总的表格 (语言、文件数、总行数)
        - 总计行
-    
+
     3. 代码内容
        - 每个文件的完整代码
        - 文件路径作为二级标题
        - 语言标签
        - 使用等宽字体格式化代码
-    
+
     4. 页数限制
        - 默认最多 60 页
        - 超出部分自动截断并提示
 
 使用方式:
     from code.exporters.word import export_word
-    
+
     export_word("./src", "code.docx")
-    
+
     # 排除特定目录
     export_word("./src", "code.docx", extra_excludes={"test", "docs"})
 """
@@ -54,30 +54,30 @@ def export_word(
 ) -> None:
     """
     将源代码导出为 Word 文档
-    
+
     收集目录中所有代码文件的内容，生成包含统计概览和完整代码的 Word 文档。
-    
+
     参数:
         directory: 项目根目录
         output_path: 输出文件路径 (如 "code.docx")
         extra_excludes: 额外的排除项 (可选)
-    
+
     文档格式:
         - 标题: 居中对齐
         - 代码: Noto Sans SC 字体，9pt
         - 表格: Table Grid 样式
         - 语言标签: 灰色小字
-    
+
     页数限制:
         - 根据 MAX_WORD_PAGES (默认 60) 和 LINES_PER_PAGE (默认 30) 计算
         - 超出部分自动截断
         - 末尾添加红色提示
-    
+
     示例:
         >>> export_word("./src", "code.docx")
         已导出到 code.docx
         总行数: 1800
-        
+
         >>> export_word("./project", "output.docx", extra_excludes={"test"})
         已导出到 output.docx
         总行数: 1500

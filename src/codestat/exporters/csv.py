@@ -14,30 +14,29 @@ CSV 导出模块
 
 使用方式:
     from code.exporters.csv import export_csv
-    
+
     results = scan_directory("./src")
     export_csv(results, "stats.csv")
 """
 
 import csv
-from typing import Dict, Tuple
 
 from ..core.stats import LineStats
 
 
-def export_csv(results: Dict[str, Tuple[int, LineStats]], output_path: str) -> None:
+def export_csv(results: dict[str, tuple[int, LineStats]], output_path: str) -> None:
     """
     将统计结果导出为 CSV 文件
-    
+
     生成包含以下信息的 CSV 文件:
         - 表头行: Language, Files, Code, Comment, Blank, Total
         - 数据行: 每种语言的详细统计 (按代码行数降序)
         - 最后一行: 总计汇总
-    
+
     参数:
         results: scan_directory 返回的统计结果字典
         output_path: 输出文件路径
-    
+
     CSV 列说明:
         - Language: 语言名称
         - Files: 文件数量
@@ -45,11 +44,11 @@ def export_csv(results: Dict[str, Tuple[int, LineStats]], output_path: str) -> N
         - Comment: 注释行数
         - Blank: 空行数
         - Total: 总行数
-    
+
     注意:
         - newline="" 防止 Windows 下出现空行
         - encoding="utf-8" 支持中文
-    
+
     示例:
         >>> results = {"Python": (10, LineStats(code=500))}
         >>> export_csv(results, "stats.csv")
@@ -60,7 +59,7 @@ def export_csv(results: Dict[str, Tuple[int, LineStats]], output_path: str) -> N
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         # 创建 CSV writer
         writer = csv.writer(f)
-        
+
         # 写入表头
         writer.writerow(["Language", "Files", "Code", "Comment", "Blank", "Total"])
 

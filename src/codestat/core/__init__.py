@@ -8,21 +8,21 @@
 
 使用方式:
     from code.core import scan_directory, detect_language, LineStats
-    
+
     # 检测语言
     lang = detect_language("main.py")
-    
+
     # 扫描目录
     results = scan_directory("./src")
-    
+
     # 统计单个文件
     from code.core import count_lines
     stats = count_lines("main.py", lang)
 """
 
-from .language import LanguageConfig, detect_language, LANGUAGES
+from .language import LANGUAGES, LanguageConfig, detect_language
+from .scanner import collect_code_files, scan_directory
 from .stats import LineStats, count_lines
-from .scanner import scan_directory, collect_code_files
 
 __all__ = [
     "LanguageConfig",      # 语言配置数据类

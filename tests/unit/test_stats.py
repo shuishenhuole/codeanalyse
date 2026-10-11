@@ -1,9 +1,8 @@
 """单元测试 - 行统计"""
 
-import pytest
 
-from codestat.core.stats import LineStats, count_lines
 from codestat.core.language import detect_language
+from codestat.core.stats import LineStats, count_lines
 
 
 class TestLineStats:

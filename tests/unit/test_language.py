@@ -1,8 +1,7 @@
 """单元测试 - 语言检测"""
 
-import pytest
 
-from codestat.core.language import detect_language, LanguageConfig, LANGUAGES
+from codestat.core.language import LANGUAGES, detect_language
 
 
 class TestDetectLanguage:
