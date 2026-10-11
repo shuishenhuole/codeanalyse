@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find . -maxdepth 3 -type d -not -path '*/.git*' -not -path '*/.venv*' -not -path '*/__pycache__*' | head -50)"
-    ]
-  }
-}
