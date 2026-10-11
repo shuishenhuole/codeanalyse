@@ -69,6 +69,7 @@ def _dark_text_field(
         prefix_icon=prefix_icon,
         suffix=suffix,
         helper=helper_text,
+        helper_max_lines=3,
         helper_style=ft.TextStyle(color=MUTED_COLOR, size=11),
         color=SUBTEXT_COLOR,
         cursor_color=PRIMARY_COLOR,
@@ -279,20 +280,40 @@ def main(page: ft.Page):
     comment_tile, stat_comment = _stat_tile("comment", "注释行数", ft.Icons.COMMENT)
     blank_tile, stat_blank = _stat_tile("blank", "空行数", ft.Icons.BLUR_CIRCULAR)
 
-    # ==================== 结果表格 ====================
+    # ==================== 结果表格 (行式栅格，自动铺满宽度) ====================
 
-    table = ft.DataTable(
-        columns=[ft.DataColumn(ft.Text(name)) for name in TABLE_COLUMNS],
-        rows=[],
-        column_spacing=40,
-        heading_row_color=ft.Colors.with_opacity(0.03, "#FFFFFF"),
-        heading_text_style=ft.TextStyle(
-            weight=ft.FontWeight.BOLD, color=SUBTEXT_COLOR, size=13
-        ),
-        data_text_style=ft.TextStyle(color=TEXT_COLOR, size=13),
-        horizontal_lines=ft.BorderSide(1, THIN_BORDER),
-        horizontal_margin=8,
-    )
+    def _grid_row(values: list[str], *, header: bool = False, bold: bool = False,
+                  bgcolor: str | None = None) -> ft.Container:
+        """构建一行栅格：首列语言占 2 份，其余数值列各占 1 份"""
+        cells = []
+        for j, v in enumerate(values):
+            numeric = j > 0
+            cells.append(
+                ft.Container(
+                    content=ft.Text(
+                        v,
+                        size=12 if header else 13,
+                        weight=ft.FontWeight.BOLD if (header or bold) else ft.FontWeight.NORMAL,
+                        color=SUBTEXT_COLOR if header else TEXT_COLOR,
+                    ),
+                    expand=2 if not numeric else 1,
+                    alignment=ft.Alignment.CENTER_RIGHT if numeric else ft.Alignment.CENTER_LEFT,
+                    padding=ft.Padding(8, 0, 18, 0) if numeric else ft.Padding(8, 0, 8, 0),
+                )
+            )
+        return ft.Container(
+            content=ft.Row(
+                spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=cells,
+            ),
+            height=38,
+            bgcolor=bgcolor,
+            border=ft.Border(bottom=ft.BorderSide(1, THIN_BORDER)),
+        )
+
+    rows_column = ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO, expand=True)
+    header_row = _grid_row(TABLE_COLUMNS, header=True)
 
     hint_text = ft.Text(
         "选择一个项目目录，开始分析代码规模", size=14, color=SUBTEXT_COLOR
@@ -323,7 +344,10 @@ def main(page: ft.Page):
     )
 
     table_scroll = ft.Container(
-        content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[table]),
+        content=ft.Column(
+            spacing=0,
+            controls=[header_row, rows_column],
+        ),
         expand=True,
         visible=False,
     )
@@ -439,16 +463,6 @@ def main(page: ft.Page):
             value.value = text
             value.color = color
 
-    def cell(text: str, numeric: bool = False, bold: bool = False) -> ft.DataCell:
-        """构建表格单元格 (数值列右对齐)"""
-        return ft.DataCell(
-            ft.Text(
-                text,
-                text_align=ft.TextAlign.RIGHT if numeric else ft.TextAlign.START,
-                weight=ft.FontWeight.BOLD if bold else ft.FontWeight.NORMAL,
-            )
-        )
-
     def show_hint(message: str) -> None:
         """切换到空状态并显示提示文案"""
         hint_text.value = message
@@ -497,26 +511,26 @@ def main(page: ft.Page):
         totals = [0, 0, 0, 0, 0]
         for i, (name, (count, stats)) in enumerate(sorted_items):
             values = [
-                name, str(count), str(stats.code),
-                str(stats.comment), str(stats.blank), str(stats.total),
+                name, _format_number(count), _format_number(stats.code),
+                _format_number(stats.comment), _format_number(stats.blank),
+                _format_number(stats.total),
             ]
-            for j, v in enumerate(values[1:]):
-                totals[j] += int(v)
-            row = ft.DataRow(cells=[cell(v, numeric=j > 0) for j, v in enumerate(values)])
-            if i % 2 == 1:
-                row.color = ft.Colors.with_opacity(0.025, "#FFFFFF")
-            rows.append(row)
+            totals[0] += count
+            totals[1] += stats.code
+            totals[2] += stats.comment
+            totals[3] += stats.blank
+            totals[4] += stats.total
+            stripe = ft.Colors.with_opacity(0.025, "#FFFFFF") if i % 2 == 1 else None
+            rows.append(_grid_row(values, bgcolor=stripe))
 
         rows.append(
-            ft.DataRow(
-                cells=[
-                    cell(v, numeric=j > 0, bold=True)
-                    for j, v in enumerate(["总计", *[_format_number(t) for t in totals]])
-                ],
-                color=ft.Colors.with_opacity(0.12, PRIMARY_COLOR),
+            _grid_row(
+                ["总计", *[_format_number(t) for t in totals]],
+                bold=True,
+                bgcolor=ft.Colors.with_opacity(0.12, PRIMARY_COLOR),
             )
         )
-        table.rows = rows
+        rows_column.controls = rows
 
         update_stats(totals)
         empty_view.visible = False
@@ -574,7 +588,7 @@ def main(page: ft.Page):
         show_hint("正在统计，请稍候...")
         status_text.value = "正在统计，请稍候..."
         state["results"] = {}
-        table.rows = []
+        rows_column.controls.clear()
         page.update()
 
         state["worker"] = threading.Thread(
