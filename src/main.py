@@ -1,13 +1,11 @@
 """
 Flet 图形界面主程序
 
-该模块实现 CodeStat 的桌面界面，使用 Flet 构建。
+该模块实现 CodeStat 的桌面界面，使用 Flet 构建，深色仪表盘风格。
 
 界面布局:
-    1. 顶部: 应用标题区域
-    2. 配置卡片: 目录选择 + 排除项 + 开始统计
-    3. 中部: 统计结果表格
-    4. 底部: 统计摘要 + 进度指示 + 导出按钮
+    1. 左侧边栏: 应用标识、统计目录/排除项配置、开始统计、状态指示
+    2. 右侧主区: 四枚概览统计磁贴 + 统计结果表格卡片 (含导出按钮)
 
 后台扫描使用 threading.Thread，结果通过 page.run_thread 回主线程更新界面。
 """
@@ -23,49 +21,127 @@ from codestat.exporters import export_csv, export_json, export_word
 
 # ==================== 主题配色 ====================
 
-BG_COLOR = "#F4F6FB"
-CARD_COLOR = "#FFFFFF"
-BORDER_COLOR = "#E4E7F0"
-TEXT_COLOR = "#1F2430"
-HINT_COLOR = "#8A90A0"
-PRIMARY_COLOR = "#4F6DF5"
-JSON_COLOR = "#34C759"
-CSV_COLOR = "#FF9F0A"
-WORD_COLOR = "#0A84FF"
+BG_TOP = "#0E1322"
+BG_BOTTOM = "#151C30"
+SIDEBAR_BG = "#141B2D"
+CARD_BG = "#1A2338"
+CARD_BORDER = "#28334F"
+FIELD_BG = "#212C47"
+TEXT_COLOR = "#EEF2FF"
+SUBTEXT_COLOR = "#A6B4D7"
+MUTED_COLOR = "#5F6E94"
+PRIMARY_COLOR = "#5B8CFF"
+
+STAT_COLORS = {
+    "files": "#5B8CFF",
+    "code": "#3DDC97",
+    "comment": "#FFB74D",
+    "blank": "#9AA7C7",
+}
+
+EXPORT_COLORS = {
+    "json": "#3DDC97",
+    "csv": "#FFB74D",
+    "word": "#5B8CFF",
+}
 
 TABLE_COLUMNS = ["语言", "文件数", "代码行", "注释行", "空行", "总行数"]
 
+# 输入框边框 (默认/聚焦两态)
+FIELD_BORDER = {
+    ft.ControlState.DEFAULT: ft.OutlineInputBorder(
+        border_radius=12, side=ft.BorderSide(1, CARD_BORDER)
+    ),
+    ft.ControlState.FOCUSED: ft.OutlineInputBorder(
+        border_radius=12, side=ft.BorderSide(2, PRIMARY_COLOR)
+    ),
+}
 
-def _card(content: list[ft.Control]) -> ft.Container:
-    """构建带圆角边框和阴影的卡片容器"""
-    return ft.Container(
-        content=ft.Column(content, spacing=12),
-        bgcolor=CARD_COLOR,
-        border=ft.Border.all(1, ft.Colors.with_opacity(1.0, BORDER_COLOR)),
-        border_radius=12,
-        padding=20,
-        shadow=ft.BoxShadow(
-            blur_radius=20,
-            spread_radius=0,
-            offset=ft.Offset(0, 3),
-            color=ft.Colors.with_opacity(0.12, "#1E2850"),
-        ),
+
+def _dark_text_field(hint_text: str, prefix_icon: str, value: str = "") -> ft.TextField:
+    """构建深色风格输入框"""
+    return ft.TextField(
+        value=value,
+        hint_text=hint_text,
+        hint_style=ft.TextStyle(color=SUBTEXT_COLOR, size=13),
+        text_style=ft.TextStyle(color=TEXT_COLOR, size=14),
+        prefix_icon=prefix_icon,
+        color=SUBTEXT_COLOR,
+        cursor_color=PRIMARY_COLOR,
+        border=FIELD_BORDER,
+        bgcolor=FIELD_BG,
+        content_padding=ft.Padding(14, 12, 14, 12),
+        expand=True,
     )
+
+
+def _section_label(text: str) -> ft.Text:
+    """侧边栏小节标题"""
+    return ft.Text(
+        text, size=12, weight=ft.FontWeight.BOLD, color=SUBTEXT_COLOR,
+        selectable=False,
+    )
+
+
+def _stat_tile(kind: str, label: str, icon: str) -> tuple[ft.Control, ft.Text]:
+    """构建概览统计磁贴，返回 (磁贴控件, 数值文本)"""
+    color = STAT_COLORS[kind]
+    value = ft.Text("—", key=f"stat-{kind}", size=26, weight=ft.FontWeight.BOLD, color=TEXT_COLOR)
+    tile = ft.Container(
+        content=ft.Row(
+            spacing=14,
+            controls=[
+                ft.Container(
+                    content=ft.Icon(icon, color=color, size=24),
+                    bgcolor=ft.Colors.with_opacity(0.15, color),
+                    border_radius=14,
+                    padding=12,
+                ),
+                ft.Column(
+                    spacing=2,
+                    controls=[
+                        value,
+                        ft.Text(label, size=13, color=SUBTEXT_COLOR),
+                    ],
+                ),
+            ],
+        ),
+        expand=True,
+        bgcolor=CARD_BG,
+        border=ft.Border.all(1, CARD_BORDER),
+        border_radius=20,
+        padding=20,
+    )
+    return tile, value
 
 
 def main(page: ft.Page):
     """Flet 应用主入口"""
     page.title = "CodeStat - 代码量统计工具"
     page.window.icon = "assets/icon.png"
-    page.width = 1024
-    page.height = 720
-    page.bgcolor = BG_COLOR
-    page.theme = ft.Theme(color_scheme_seed=PRIMARY_COLOR)
+    page.width = 1160
+    page.height = 780
+    page.bgcolor = BG_TOP
+    page.theme = ft.Theme(
+        color_scheme_seed=PRIMARY_COLOR, font_family="Microsoft YaHei UI"
+    )
     page.padding = 0
 
     # ==================== 状态 ====================
 
     state = {"results": {}, "worker": None}
+
+    # ==================== 轻提示 (SnackBar) ====================
+
+    snack_text = ft.Text("", size=13, color="#0B1020")
+    snack = ft.SnackBar(snack_text, duration=2500, bgcolor="#D9E4FF")
+    page.overlay.append(snack)
+
+    def toast(message: str) -> None:
+        """弹出轻提示"""
+        snack_text.value = message
+        snack.open = True
+        page.update()
 
     # ==================== 文件选择器 ====================
 
@@ -74,63 +150,177 @@ def main(page: ft.Page):
     page.services.append(dir_picker)
     page.services.append(save_picker)
 
-    # ==================== 控件定义 ====================
+    # ==================== 侧边栏控件 ====================
 
-    dir_edit = ft.TextField(
-        value=os.getcwd(),
-        hint_text="选择要统计的目录",
-        expand=True,
-        border_radius=8,
-        bgcolor="#F8F9FE",
+    dir_edit = _dark_text_field("选择要统计的目录", ft.Icons.FOLDER_OPEN, value=os.getcwd())
+    exclude_edit = _dark_text_field(
+        "目录名/文件名/后缀，空格或逗号分隔", ft.Icons.BLOCK,
     )
 
-    exclude_edit = ft.TextField(
-        hint_text="用空格或逗号分隔，可填目录名/文件名/后缀，例如: tests, md, py",
-        expand=True,
-        border_radius=8,
-        bgcolor="#F8F9FE",
+    browse_btn = ft.FilledButton(
+        "浏览",
+        icon=ft.Icons.FOLDER_OPEN,
+        style=ft.ButtonStyle(
+            bgcolor=FIELD_BG, color=SUBTEXT_COLOR, elevation=0,
+            padding=ft.Padding(12, 10, 12, 10),
+            side=ft.BorderSide(1, CARD_BORDER),
+        ),
     )
 
-    summary_text = ft.Text(
-        "请选择目录后点击「开始统计」",
-        weight=ft.FontWeight.BOLD,
-        color="#2A3F8F",
+    scan_btn = ft.FilledButton(
+        "开始统计",
+        icon=ft.Icons.SEARCH,
+        key="scan",
         expand=True,
+        style=ft.ButtonStyle(
+            bgcolor=PRIMARY_COLOR, color="#0B1020", elevation=0,
+            padding=ft.Padding(16, 14, 16, 14),
+        ),
     )
 
-    status_text = ft.Text("就绪", size=12, color=HINT_COLOR)
+    progress = ft.ProgressRing(
+        width=22, height=22, stroke_width=3, color=PRIMARY_COLOR, visible=False
+    )
+    status_text = ft.Text("就绪", size=12, color=SUBTEXT_COLOR)
 
-    progress = ft.ProgressRing(width=22, height=22, visible=False)
+    sidebar = ft.Container(
+        width=340,
+        bgcolor=SIDEBAR_BG,
+        border=ft.Border(right=ft.BorderSide(1, CARD_BORDER)),
+        padding=ft.Padding(24, 24, 24, 18),
+        content=ft.Column(
+            spacing=18,
+            controls=[
+                ft.Row(
+                    spacing=12,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Image(src="assets/icon.png", width=40, height=40, border_radius=10),
+                        ft.Column(
+                            spacing=2,
+                            controls=[
+                                ft.Text("CodeStat", key="title", size=20,
+                                        weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
+                                ft.Text("代码量统计工具", size=12, color=SUBTEXT_COLOR),
+                            ],
+                        ),
+                    ],
+                ),
+                ft.Container(height=1, bgcolor=CARD_BORDER),
+                _section_label("统计目录"),
+                ft.Row(spacing=10, controls=[dir_edit, browse_btn]),
+                _section_label("排除项"),
+                exclude_edit,
+                ft.Row(spacing=12, controls=[scan_btn]),
+                ft.Container(expand=True),
+                ft.Row(
+                    spacing=10,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[progress, status_text],
+                ),
+                ft.Text("支持 40+ 种编程语言", size=11, color=MUTED_COLOR),
+            ],
+        ),
+    )
+
+    # ==================== 概览磁贴 ====================
+
+    files_tile, stat_files = _stat_tile("files", "文件数", ft.Icons.DESCRIPTION)
+    code_tile, stat_code = _stat_tile("code", "代码行", ft.Icons.CODE)
+    comment_tile, stat_comment = _stat_tile("comment", "注释行", ft.Icons.COMMENT)
+    blank_tile, stat_blank = _stat_tile("blank", "空行", ft.Icons.BLUR_CIRCULAR)
+
+    # ==================== 结果表格 ====================
 
     table = ft.DataTable(
         columns=[ft.DataColumn(ft.Text(name)) for name in TABLE_COLUMNS],
         rows=[],
-        bgcolor=CARD_COLOR,
-        border_radius=8,
-        column_spacing=32,
-        heading_text_style=ft.TextStyle(weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
+        column_spacing=40,
+        heading_row_color=ft.Colors.with_opacity(0.06, PRIMARY_COLOR),
+        heading_text_style=ft.TextStyle(
+            weight=ft.FontWeight.BOLD, color=PRIMARY_COLOR, size=13
+        ),
+        data_text_style=ft.TextStyle(color=TEXT_COLOR, size=13),
+        horizontal_lines=ft.BorderSide(1, CARD_BORDER),
+        horizontal_margin=8,
     )
 
-    scan_btn = ft.FilledButton("开始统计", key="scan", disabled=True)
-    browse_btn = ft.FilledButton("浏览...", icon=ft.Icons.FOLDER_OPEN)
+    hint_text = ft.Text("请选择目录后点击「开始统计」", size=14, color=SUBTEXT_COLOR)
+    empty_view = ft.Container(
+        content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=14,
+            controls=[
+                ft.Icon(ft.Icons.TABLE_VIEW, size=52, color=MUTED_COLOR),
+                hint_text,
+            ],
+        ),
+        alignment=ft.Alignment.CENTER,
+        expand=True,
+    )
 
-    json_btn = ft.FilledButton(
-        "导出 JSON",
-        key="export-json",
-        disabled=True,
-        style=ft.ButtonStyle(bgcolor=JSON_COLOR),
+    table_scroll = ft.Container(
+        content=ft.Column(scroll=ft.ScrollMode.AUTO, controls=[table]),
+        expand=True,
+        visible=False,
     )
-    csv_btn = ft.FilledButton(
-        "导出 CSV",
-        key="export-csv",
-        disabled=True,
-        style=ft.ButtonStyle(bgcolor=CSV_COLOR),
+
+    export_buttons = [
+        ft.FilledButton(
+            label,
+            icon=ft.Icons.DOWNLOAD if fmt != "word" else ft.Icons.MENU_BOOK,
+            key=f"export-{fmt}",
+            style=ft.ButtonStyle(
+                bgcolor=EXPORT_COLORS[fmt], color="#0B1020", elevation=0,
+                padding=ft.Padding(14, 8, 14, 8),
+            ),
+        )
+        for fmt, label in (("json", "导出 JSON"), ("csv", "导出 CSV"), ("word", "导出 Word"))
+    ]
+    json_btn, csv_btn, word_btn = export_buttons
+
+    results_card = ft.Container(
+        content=ft.Column(
+            spacing=16,
+            expand=True,
+            controls=[
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text("统计结果", size=17, weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
+                        ft.Row(spacing=10, controls=export_buttons),
+                    ],
+                ),
+                empty_view,
+                table_scroll,
+            ],
+        ),
+        expand=True,
+        bgcolor=CARD_BG,
+        border=ft.Border.all(1, CARD_BORDER),
+        border_radius=20,
+        padding=22,
     )
-    word_btn = ft.FilledButton(
-        "导出 Word",
-        key="export-word",
-        disabled=True,
-        style=ft.ButtonStyle(bgcolor=WORD_COLOR),
+
+    main_area = ft.Container(
+        content=ft.Column(
+            spacing=18,
+            expand=True,
+            controls=[
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text("统计概览", size=22, weight=ft.FontWeight.BOLD, color=TEXT_COLOR),
+                    ],
+                ),
+                ft.Row(spacing=14, controls=[files_tile, code_tile, comment_tile, blank_tile]),
+                results_card,
+            ],
+        ),
+        expand=True,
+        padding=ft.Padding(28, 24, 28, 20),
     )
 
     # ==================== 辅助函数 ====================
@@ -144,17 +334,29 @@ def main(page: ft.Page):
                 excludes.add(token)
         return excludes
 
+    def dir_is_valid() -> bool:
+        """当前目录输入是否为有效目录"""
+        return os.path.isdir((dir_edit.value or "").strip())
+
     def set_busy(busy: bool) -> None:
-        """切换扫描期间的控件可用状态"""
-        scan_btn.disabled = busy or not os.path.isdir((dir_edit.value or "").strip())
-        browse_btn.disabled = busy
+        """切换扫描期间的控件视觉状态 (不禁用点击，点击时给出提示)"""
+        scan_btn.opacity = 1.0 if (not busy and dir_is_valid()) else 0.45
+        browse_btn.opacity = 0.45 if busy else 1.0
         progress.visible = busy
-        export_enabled = not busy and bool(state["results"])
-        for btn in (json_btn, csv_btn, word_btn):
-            btn.disabled = not export_enabled
+        has_results = bool(state["results"])
+        for btn in export_buttons:
+            btn.opacity = 1.0 if (not busy and has_results) else 0.45
+
+    def update_stats(totals: list[int] | None) -> None:
+        """更新概览统计磁贴数值"""
+        values = ["—"] * 4 if totals is None else [str(t) for t in totals[:4]]
+        for value, text in zip(
+            (stat_files, stat_code, stat_comment, stat_blank), values, strict=True
+        ):
+            value.value = text
 
     def cell(text: str, numeric: bool = False, bold: bool = False) -> ft.DataCell:
-        """构建表格单元格"""
+        """构建表格单元格 (数值列右对齐)"""
         return ft.DataCell(
             ft.Text(
                 text,
@@ -163,69 +365,86 @@ def main(page: ft.Page):
             )
         )
 
+    def show_hint(message: str) -> None:
+        """切换到空状态并显示提示文案"""
+        hint_text.value = message
+        empty_view.visible = True
+        table_scroll.visible = False
+
     # ==================== 事件处理 ====================
 
-    def on_dir_picked(path: str | None) -> None:
-        """目录选择完成回调"""
-        if path:
-            dir_edit.value = path
-        set_busy(bool(state["worker"]) and state["worker"].is_alive())
-        page.update()
+    def worker_running() -> bool:
+        """后台扫描线程是否在运行"""
+        worker = state["worker"]
+        return worker is not None and worker.is_alive()
 
-    async def _browse_directory(e) -> None:
+    async def browse_directory(e) -> None:
         """弹出目录选择对话框"""
+        if worker_running():
+            toast("正在统计中，请稍候...")
+            return
         path = await dir_picker.get_directory_path(
             dialog_title="选择统计目录",
             initial_directory=(dir_edit.value or os.getcwd()).strip(),
         )
-        on_dir_picked(path)
-
-    def make_cell_row(row_values: list[str], bold: bool = False) -> ft.DataRow:
-        """构建一行表格数据 (首列左对齐，其余右对齐)"""
-        return ft.DataRow(
-            cells=[
-                cell(v, numeric=i > 0, bold=bold) for i, v in enumerate(row_values)
-            ]
-        )
+        if path:
+            dir_edit.value = path
+        set_busy(False)
+        page.update()
 
     def render_results(results: dict) -> None:
         """渲染统计结果到表格"""
         state["results"] = results
 
         if not results:
-            table.rows = []
-            summary_text.value = "未找到可统计的代码文件"
+            update_stats(None)
+            show_hint("未找到可统计的代码文件")
             status_text.value = "未找到可统计的代码文件"
             set_busy(False)
             page.update()
             return
 
         # 按代码行数降序排列
-        sorted_items = sorted(results.items(), key=lambda x: x[1][1].code, reverse=True)
+        sorted_items = sorted(
+            results.items(), key=lambda x: x[1][1].code, reverse=True
+        )
 
         rows = []
         totals = [0, 0, 0, 0, 0]
-        for name, (count, stats) in sorted_items:
-            values = [name, str(count), str(stats.code), str(stats.comment), str(stats.blank), str(stats.total)]
-            for i, v in enumerate(values[1:]):
-                totals[i] += int(v)
-            rows.append(make_cell_row(values))
+        for i, (name, (count, stats)) in enumerate(sorted_items):
+            values = [
+                name, str(count), str(stats.code),
+                str(stats.comment), str(stats.blank), str(stats.total),
+            ]
+            for j, v in enumerate(values[1:]):
+                totals[j] += int(v)
+            row = ft.DataRow(cells=[cell(v, numeric=j > 0) for j, v in enumerate(values)])
+            if i % 2 == 1:
+                row.color = ft.Colors.with_opacity(0.04, "#FFFFFF")
+            rows.append(row)
 
         rows.append(
-            make_cell_row(["总计", *[str(t) for t in totals]], bold=True)
+            ft.DataRow(
+                cells=[
+                    cell(v, numeric=j > 0, bold=True)
+                    for j, v in enumerate(["总计", *[str(t) for t in totals]])
+                ],
+                color=ft.Colors.with_opacity(0.10, PRIMARY_COLOR),
+            )
         )
         table.rows = rows
 
-        summary_text.value = (
-            f"共 {totals[0]} 个文件 · {totals[1]} 行代码 · {totals[2]} 行注释 · {totals[3]} 行空行"
-        )
+        update_stats(totals)
+        empty_view.visible = False
+        table_scroll.visible = True
         status_text.value = f"统计完成: 共 {totals[0]} 个文件, {totals[4]} 行"
         set_busy(False)
         page.update()
 
     def render_error(error: str) -> None:
         """渲染扫描失败信息"""
-        summary_text.value = "统计失败"
+        update_stats(None)
+        show_hint("统计失败")
         status_text.value = "统计失败"
         set_busy(False)
         page.update()
@@ -239,7 +458,7 @@ def main(page: ft.Page):
             )
         )
 
-    def _scan_worker(directory: str, excludes: set[str]) -> None:
+    def scan_worker(directory: str, excludes: set[str]) -> None:
         """后台扫描线程入口"""
         try:
             results = scan_directory(directory, excludes or None)
@@ -248,45 +467,48 @@ def main(page: ft.Page):
         else:
             page.run_thread(render_results, results)
 
-    def _start_scan(e) -> None:
+    def start_scan(e) -> None:
         """开始统计"""
+        if worker_running():
+            toast("正在统计中，请稍候...")
+            return
+
         directory = (dir_edit.value or "").strip()
         if not os.path.isdir(directory):
-            summary_text.value = "请选择有效的统计目录"
+            show_hint("请选择有效的统计目录")
             status_text.value = "目录无效"
             page.update()
+            toast("请选择有效的统计目录")
             return
 
-        worker = state["worker"]
-        if worker is not None and worker.is_alive():
-            return
-
-        scan_btn.disabled = True
-        browse_btn.disabled = True
-        for btn in (json_btn, csv_btn, word_btn):
-            btn.disabled = True
-        progress.visible = True
-        summary_text.value = "正在统计，请稍候..."
+        set_busy(True)
+        update_stats(None)
+        show_hint("正在统计，请稍候...")
         status_text.value = "正在统计，请稍候..."
         state["results"] = {}
         table.rows = []
         page.update()
 
         state["worker"] = threading.Thread(
-            target=_scan_worker, args=(directory, parse_excludes()), daemon=True
+            target=scan_worker, args=(directory, parse_excludes()), daemon=True
         )
         state["worker"].start()
 
     # ==================== 导出 ====================
 
-    def _export(fmt: str):
-        """导出统计结果 (返回异步回调)"""
+    def make_export_handler(fmt: str):
+        """构建导出回调"""
 
         async def handler(e) -> None:
+            if worker_running():
+                toast("正在统计中，请稍候...")
+                return
+
             results = state["results"]
             if not results:
                 status_text.value = "请先执行统计"
                 page.update()
+                toast("请先执行统计，再导出结果")
                 return
 
             directory = (dir_edit.value or "").strip()
@@ -294,6 +516,7 @@ def main(page: ft.Page):
                 if not os.path.isdir(directory):
                     status_text.value = "统计目录无效，无法导出 Word"
                     page.update()
+                    toast("统计目录无效，无法导出 Word")
                     return
                 default_name = "codestat.docx"
                 extensions = ["docx"]
@@ -329,74 +552,35 @@ def main(page: ft.Page):
     # ==================== 绑定事件 ====================
 
     def on_dir_changed(e) -> None:
-        """目录输入变化时更新「开始统计」按钮状态"""
-        if not scan_btn.disabled or not state["worker"]:
-            scan_btn.disabled = not os.path.isdir((e.control.value or "").strip())
+        """目录输入变化时更新「开始统计」按钮视觉状态"""
+        if not worker_running():
+            set_busy(False)
         page.update()
 
     dir_edit.on_change = on_dir_changed
-    browse_btn.on_click = _browse_directory
-    scan_btn.on_click = _start_scan
-    json_btn.on_click = _export("json")
-    csv_btn.on_click = _export("csv")
-    word_btn.on_click = _export("word")
+    browse_btn.on_click = browse_directory
+    scan_btn.on_click = start_scan
+    json_btn.on_click = make_export_handler("json")
+    csv_btn.on_click = make_export_handler("csv")
+    word_btn.on_click = make_export_handler("word")
+
+    set_busy(False)
 
     # ==================== 界面布局 ====================
 
     page.add(
-        ft.SafeArea(
+        ft.Container(
             expand=True,
-            content=ft.Container(
+            gradient=ft.LinearGradient(
+                colors=[BG_TOP, BG_BOTTOM],
+                begin=ft.Alignment.TOP_CENTER,
+                end=ft.Alignment.BOTTOM_CENTER,
+            ),
+            content=ft.SafeArea(
                 expand=True,
-                padding=ft.Padding(24, 20, 24, 16),
-                content=ft.Column(
-                    spacing=16,
-                    expand=True,
-                    controls=[
-                        ft.Text("CodeStat", key="title", size=24, weight=ft.FontWeight.BOLD),
-                        ft.Text("代码量统计工具 · 支持 40+ 种编程语言", size=12, color=HINT_COLOR),
-                        _card(
-                            [
-                                ft.Row(
-                                    spacing=12,
-                                    controls=[
-                                        ft.Text("统计目录", weight=ft.FontWeight.BOLD, width=64),
-                                        dir_edit,
-                                        browse_btn,
-                                        scan_btn,
-                                    ],
-                                ),
-                                ft.Row(
-                                    spacing=12,
-                                    controls=[
-                                        ft.Text("排除项", weight=ft.FontWeight.BOLD, width=64),
-                                        exclude_edit,
-                                    ],
-                                ),
-                            ]
-                        ),
-                        ft.Container(
-                            expand=True,
-                            content=ft.Column(
-                                scroll=ft.ScrollMode.AUTO,
-                                controls=[table],
-                            ),
-                        ),
-                        ft.Row(
-                            spacing=12,
-                            controls=[
-                                summary_text,
-                                progress,
-                                json_btn,
-                                csv_btn,
-                                word_btn,
-                            ],
-                        ),
-                        ft.Container(
-                            content=status_text,
-                            padding=ft.Padding(4, 0, 4, 0),
-                        ),
-                    ],
+                content=ft.Row(
+                    spacing=0,
+                    controls=[sidebar, main_area],
                 ),
             ),
         )

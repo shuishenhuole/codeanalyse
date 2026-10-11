@@ -1,4 +1,6 @@
-# Codeanalyse app
+# CodeStat - 代码量统计工具
+
+基于 Flet 的桌面应用，统计项目中各编程语言的代码行数。支持 40+ 种编程语言，区分代码行/注释行/空行，可导出 JSON / CSV / Word。
 
 ## Run the app
 
