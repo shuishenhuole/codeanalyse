@@ -14,6 +14,7 @@ Markdown 转 Word 模块
     - 页眉标题、页脚页码、标题强调线
     - 水平分割线
     - 本地图片、网络图片、Data URI 图片以及 HTML <img> 标签
+    - HTML 居中容器 (<p align="center"> / <div> / <center>) 与 <em> / <figcaption> 图注
     - 图片加载失败时以占位文字提示
 
 使用方式:
@@ -106,10 +107,35 @@ HTML_IMAGE_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
-HTML_ALT_RE = re.compile(
-    r"\balt\s*=\s*(?P<quote>[\"'])(?P<alt>.*?)(?P=quote)",
-    re.IGNORECASE | re.DOTALL,
+# HTML 块级标签：<p align="center">、<div>、<figure>、<center>、<figcaption>
+HTML_BLOCK_OPEN_RE = re.compile(
+    r"^<(?P<tag>p|div|figure|center|figcaption)\b(?P<attrs>[^>]*)>",
+    re.IGNORECASE,
 )
+
+HTML_BLOCK_CLOSE_RE = re.compile(
+    r"^</(?P<tag>p|div|figure|center|figcaption)\s*>",
+    re.IGNORECASE,
+)
+
+HTML_ALIGN_RE = re.compile(
+    r"\balign\s*=\s*[\"']?(?P<align>left|center|right)[\"']?",
+    re.IGNORECASE,
+)
+
+HTML_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+
+# 只清理常见 HTML 标签，避免误伤代码中的 <T> 这类内容
+HTML_INLINE_STRIP_RE = re.compile(
+    r"</?(?:p|div|figure|figcaption|center|em|strong|b|i|u|span|small|sup|sub|br|font|a|img)\b[^>]*>",
+    re.IGNORECASE,
+)
+
+HTML_ALIGNMENTS = {
+    "left": WD_ALIGN_PARAGRAPH.LEFT,
+    "center": WD_ALIGN_PARAGRAPH.CENTER,
+    "right": WD_ALIGN_PARAGRAPH.RIGHT,
+}
 
 # 水平分割线
 RULE_RE = re.compile(r"^(?:\*{3,}|-{3,}|_{3,})$")
@@ -537,8 +563,64 @@ def _add_hyperlink(paragraph, text: str, url: str) -> None:
     paragraph._p.append(hyperlink)
 
 
+def _strip_html_tags(text: str) -> str:
+    """移除常见 HTML 标签，保留其中的文字"""
+    text = HTML_BR_RE.sub(" ", text)
+    return HTML_INLINE_STRIP_RE.sub("", text)
+
+
+def _normalize_inline_html(text: str) -> str:
+    """把常见行内 HTML 转成 Markdown 标记，并清理剩余标签"""
+    code_spans: list[str] = []
+
+    def protect_code(match: re.Match) -> str:
+        code_spans.append(match.group(0))
+        return f"\x00CODE{len(code_spans) - 1}\x00"
+
+    # 行内代码中的 <T>、<b> 等不能被当作 HTML 标签清理
+    protected = re.sub(r"`[^`\n]+`", protect_code, text)
+
+    protected = re.sub(
+        r"<strong\b[^>]*>(.*?)</strong>",
+        r"**\1**",
+        protected,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    protected = re.sub(
+        r"<b\b[^>]*>(.*?)</b>",
+        r"**\1**",
+        protected,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    protected = re.sub(
+        r"<em\b[^>]*>(.*?)</em>",
+        r"*\1*",
+        protected,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    protected = re.sub(
+        r"<i\b[^>]*>(.*?)</i>",
+        r"*\1*",
+        protected,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    protected = re.sub(
+        r"<code\b[^>]*>(.*?)</code>",
+        r"`\1`",
+        protected,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    protected = _strip_html_tags(protected)
+
+    for index, span in enumerate(code_spans):
+        protected = protected.replace(f"\x00CODE{index}\x00", span)
+
+    return protected
+
+
 def _add_runs(paragraph, text: str) -> None:
     """把一行 Markdown 文本按行内格式拆成多个 run 写入段落"""
+    text = _normalize_inline_html(text)
     position = 0
     for match in INLINE_TOKEN.finditer(text):
         if match.start() > position:
@@ -696,12 +778,18 @@ class _MarkdownRenderer:
         self.table_buf: list[str] = []
         self.para_buf: list[str] = []
 
+        self.html_tag: str | None = None
+        self.html_attrs = ""
+        self.html_buf: list[str] = []
+
     def render(self) -> None:
         """逐行解析并写入文档"""
         for line in self.lines:
             self._consume(line)
 
-        # 处理文末未闭合的代码块、表格和段落
+        # 处理文末未闭合的 HTML 块、代码块、表格和段落
+        if self.html_tag is not None:
+            self._flush_html_block()
         if self.in_code:
             self._add_code_block(self.code_buf)
             self.in_code = False
@@ -730,6 +818,10 @@ class _MarkdownRenderer:
             self.in_code = True
             self.code_fence = stripped[:3]
             self.code_buf = []
+            return
+
+        # ----- HTML 块 (居中图片、图注等) -----
+        if self._consume_html(line):
             return
 
         # ----- 表格 -----
@@ -771,7 +863,7 @@ class _MarkdownRenderer:
         match = IMAGE_RE.match(stripped)
         if match:
             self._flush_paragraph()
-            self._add_image(match.group("src"), match.group("alt"))
+            self._add_image(match.group("src"))
             return
 
         # ----- HTML 图片 -----
@@ -779,9 +871,7 @@ class _MarkdownRenderer:
             match = HTML_IMAGE_RE.search(stripped)
             if match:
                 self._flush_paragraph()
-                alt_match = HTML_ALT_RE.search(stripped)
-                alt = alt_match.group("alt") if alt_match else ""
-                self._add_image(match.group("src"), alt)
+                self._add_image(match.group("src"))
                 return
 
         # ----- 空行 -----
@@ -791,6 +881,106 @@ class _MarkdownRenderer:
 
         # ----- 普通段落：合并连续行 -----
         self.para_buf.append(stripped)
+
+    def _consume_html(self, line: str) -> bool:
+        """处理常见 HTML 块，返回 True 表示该行已被消费"""
+        stripped = line.strip()
+
+        # 当前位于 <p> / <div> / <figure> / <center> 等块内部
+        if self.html_tag is not None:
+            close_token = f"</{self.html_tag}>"
+            index = stripped.lower().find(close_token)
+            if index >= 0:
+                content = stripped[:index]
+                if content.strip():
+                    self.html_buf.append(content)
+                rest = stripped[index + len(close_token) :].strip()
+                self._flush_html_block()
+                if rest:
+                    self._consume(rest)
+                return True
+            self.html_buf.append(line)
+            return True
+
+        # 块级起始标签
+        open_match = HTML_BLOCK_OPEN_RE.match(stripped)
+        if open_match:
+            self._flush_paragraph()
+            self._flush_table()
+            tag = open_match.group("tag").lower()
+            attrs = open_match.group("attrs") or ""
+            content_start = open_match.end()
+
+            close_re = re.compile(rf"</{tag}\s*>", re.IGNORECASE)
+            close_match = close_re.search(stripped, content_start)
+            if close_match:
+                content = stripped[content_start : close_match.start()]
+                rest = stripped[close_match.end() :].strip()
+                self._emit_html_block(tag, attrs, content)
+                if rest:
+                    self._consume(rest)
+            else:
+                self.html_tag = tag
+                self.html_attrs = attrs
+                self.html_buf = [stripped[content_start:]]
+            return True
+
+        # 孤立的结束标签直接忽略，避免把 </p> 写进正文
+        close_match = HTML_BLOCK_CLOSE_RE.match(stripped)
+        if close_match:
+            rest = stripped[close_match.end() :].strip()
+            if rest:
+                self._consume(rest)
+            return True
+
+        return False
+
+    def _flush_html_block(self) -> None:
+        """结束当前 HTML 块并渲染其内容"""
+        if self.html_tag is None:
+            return
+        tag = self.html_tag
+        attrs = self.html_attrs
+        content = "\n".join(self.html_buf)
+        self.html_tag = None
+        self.html_attrs = ""
+        self.html_buf = []
+        self._emit_html_block(tag, attrs, content)
+
+    def _emit_html_block(self, tag: str, attrs: str, content: str) -> None:
+        """把 HTML 块中的图片、居中文字和图注写入 Word"""
+        align_match = HTML_ALIGN_RE.search(attrs)
+        alignment = (
+            HTML_ALIGNMENTS.get(align_match.group("align").lower())
+            if align_match
+            else None
+        )
+        if alignment is None and tag == "center":
+            alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        image_matches = list(HTML_IMAGE_RE.finditer(content))
+        for image_match in image_matches:
+            self._add_image(image_match.group("src"))
+
+        raw_text = HTML_IMAGE_RE.sub("", content)
+        text = re.sub(r"[ \t\r\n]+", " ", _strip_html_tags(raw_text)).strip()
+        if not text:
+            return
+
+        is_caption = (
+            tag == "figcaption"
+            or bool(re.search(r"<figcaption\b", content, re.IGNORECASE))
+            or bool(re.search(r"<(?:em|i)\b", content, re.IGNORECASE))
+            or bool(image_matches)
+        )
+        if is_caption:
+            self._add_caption(text)
+            return
+
+        paragraph = self.doc.add_paragraph()
+        if alignment is not None:
+            paragraph.alignment = alignment
+        _add_runs(paragraph, re.sub(r"[ \t\r\n]+", " ", raw_text).strip())
 
     # -------------------- 块级元素 --------------------
 
@@ -932,7 +1122,7 @@ class _MarkdownRenderer:
 
         _add_runs(paragraph, content)
 
-    def _add_image(self, raw_source: str, alt: str = "") -> None:
+    def _add_image(self, raw_source: str) -> None:
         """写入图片；网络图片会先下载，加载失败时以占位文字提示"""
         source = _clean_image_source(raw_source)
         if not source:
@@ -965,14 +1155,8 @@ class _MarkdownRenderer:
         picture_paragraph = self.doc.paragraphs[-1]
         picture_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         picture_paragraph.paragraph_format.space_before = Pt(6)
-
-        caption = alt.strip()
-        has_caption = bool(caption) and caption.lower() not in {"image", "img", "图片"}
-        picture_paragraph.paragraph_format.space_after = Pt(2 if has_caption else 8)
+        picture_paragraph.paragraph_format.space_after = Pt(8)
         self._scale_picture(self.doc.inline_shapes[-1])
-
-        if has_caption:
-            self._add_caption(caption)
 
     def _scale_picture(self, shape) -> None:
         """把过宽的图片等比缩放到页面可用宽度"""

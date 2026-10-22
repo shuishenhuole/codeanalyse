@@ -4,6 +4,7 @@ import base64
 
 import pytest
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from codestat.converters import convert_markdown_to_docx
 from codestat.converters import md2docx as md2docx_module
@@ -102,7 +103,7 @@ def test_convert_markdown_to_docx_missing_file(tmp_path):
 
 
 def test_convert_markdown_to_docx_local_image(tmp_path):
-    """本地图片会真正嵌入 Word，并生成居中的说明文字"""
+    """本地图片会真正嵌入 Word，alt 文本不再当作可见图注"""
     image_path = tmp_path / "cover.png"
     image_path.write_bytes(PNG_BYTES)
     markdown = tmp_path / "image.md"
@@ -115,7 +116,7 @@ def test_convert_markdown_to_docx_local_image(tmp_path):
     doc = Document(str(output))
     assert len(doc.inline_shapes) == 1
     assert warnings == []
-    assert "本地图片" in [paragraph.text for paragraph in doc.paragraphs]
+    assert "本地图片" not in [paragraph.text for paragraph in doc.paragraphs]
     assert doc.paragraphs[0].text == "图片测试"
 
 
@@ -139,9 +140,62 @@ def test_convert_markdown_to_docx_html_and_data_uri_images(tmp_path):
     doc = Document(str(output))
     assert len(doc.inline_shapes) == 2
     assert warnings == []
-    captions = [paragraph.text for paragraph in doc.paragraphs]
-    assert "HTML 图片" in captions
-    assert "Data URI" in captions
+    paragraphs = [paragraph.text for paragraph in doc.paragraphs]
+    assert "HTML 图片" not in paragraphs
+    assert "Data URI" not in paragraphs
+
+
+def test_convert_markdown_to_docx_html_center_image_with_caption(tmp_path):
+    """HTML 居中容器不会变成正文，em/figcaption 会渲染为居中图注"""
+    image_path = tmp_path / "cover.png"
+    image_path.write_bytes(PNG_BYTES)
+    markdown = tmp_path / "html_image.md"
+    markdown.write_text(
+        "# 文件浏览\n\n"
+        '<p align="center">\n'
+        '  <img src="cover.png" alt="文件浏览页" />\n'
+        "</p>\n"
+        '<p align="center"><em>图 2　文件浏览：面包屑、搜索、视图切换与条目菜单</em></p>\n',
+        encoding="utf-8",
+    )
+
+    warnings: list[str] = []
+    output = tmp_path / "html_image.docx"
+    convert_markdown_to_docx(markdown, output, warnings=warnings)
+
+    doc = Document(str(output))
+    assert len(doc.inline_shapes) == 1
+    assert warnings == []
+    paragraphs = [paragraph.text for paragraph in doc.paragraphs]
+    assert "文件浏览页" not in paragraphs
+    assert not any(
+        "<p" in text or "</p>" in text or "<em>" in text for text in paragraphs
+    )
+
+    caption = next(
+        paragraph
+        for paragraph in doc.paragraphs
+        if "图 2　文件浏览" in paragraph.text
+    )
+    assert caption.alignment == WD_ALIGN_PARAGRAPH.CENTER
+    assert caption.runs[0].italic is True
+
+
+def test_convert_markdown_to_docx_inline_html(tmp_path):
+    """普通段落中的常见行内 HTML 会转成对应格式"""
+    markdown = tmp_path / "inline_html.md"
+    markdown.write_text(
+        "文本包含 <strong>加粗</strong> 和 <em>斜体</em>。\n", encoding="utf-8"
+    )
+
+    output = tmp_path / "inline_html.docx"
+    convert_markdown_to_docx(markdown, output)
+
+    doc = Document(str(output))
+    paragraph = doc.paragraphs[0]
+    assert paragraph.text == "文本包含 加粗 和 斜体。"
+    assert any(run.bold for run in paragraph.runs)
+    assert any(run.italic for run in paragraph.runs)
 
 
 def test_convert_markdown_to_docx_remote_image(tmp_path, monkeypatch):

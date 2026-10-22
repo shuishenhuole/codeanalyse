@@ -23,7 +23,7 @@ For more details on running the app, refer to the [Getting Started Guide](https:
 ## Markdown 转 Word
 
 点击左侧「工具」区域的 **Markdown 转 Word** 按钮，选择 `.md` 文件与输出路径后即可转换。
-支持标题、列表、表格、代码块、引用、链接、水平线，以及本地图片、网络图片、Data URI 和 HTML `<img>` 图片。
+支持标题、列表、表格、代码块、引用、链接、水平线，以及本地图片、网络图片、Data URI 和 HTML `<img>` 图片，并兼容 `<p align="center">` 居中图片与 `<em>` / `<figcaption>` 图注。
 转换结果会套用 A4 页面、页眉标题、页脚页码、标题强调线、表头配色与斑马纹、代码卡片和图片居中说明等排版样式。
 
 ## Build the app
