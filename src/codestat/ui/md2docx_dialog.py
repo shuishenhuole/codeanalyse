@@ -223,8 +223,12 @@ class MarkdownToDocxDialog:
 
         try:
             # 放到线程池执行，避免大文档阻塞 Flet 界面
+            warnings: list[str] = []
             result = await asyncio.to_thread(
-                convert_markdown_to_docx, md_path, out_path
+                convert_markdown_to_docx,
+                md_path,
+                out_path,
+                warnings=warnings,
             )
         except Exception as exc:
             self.convert_btn.disabled = False
@@ -236,7 +240,11 @@ class MarkdownToDocxDialog:
         self._last_output = str(result)
         self.convert_btn.disabled = False
         self.page.pop_dialog()
-        self.on_converted(f"已转换 Markdown: {result}")
+
+        message = f"已转换 Markdown: {result}"
+        if warnings:
+            message += f"（{len(warnings)} 张图片未插入，文档内已保留占位提示）"
+        self.on_converted(message)
 
     # ==================== 辅助方法 ====================
 
