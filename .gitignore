@@ -19,9 +19,16 @@ env/
 .flet/
 build/
 
+# PyInstaller
+dist/
+*.spec
+
 # IDE
 .idea/
 .vscode/
 
 # macOS
-.DS_Store.qoder/
+.DS_Store
+
+# Qoder
+.qoder/

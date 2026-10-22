@@ -21,6 +21,8 @@ uv run ruff check .          # lint（pyproject 已配置）
 ## 结构要点
 
 - Flet 入口 `src/main.py`（`[tool.flet.app] path = "src"`），业务逻辑在 `src/codestat/` 包，测试靠 `pythonpath = ["src"]` 导入 `codestat.*`。
+- 界面代码分层：`src/codestat/app.py` 负责页面装配与事件绑定，`src/codestat/ui/` 存放主题、侧边栏、结果面板和对话框；新增界面功能优先放进 `ui/`，不要把控件堆回 `app.py`。
+- 格式转换逻辑放在 `src/codestat/converters/`，其中 `md2docx.py` 提供 `convert_markdown_to_docx()`，界面通过 `MarkdownToDocxDialog` 调用。
 - `src/codestat/core/__init__.py` 重导出 `scan_directory` / `collect_code_files` / `detect_language` 等，UI 和测试均通过 `codestat.core` 导入。新增 core 功能时记得在 `__all__` 里补上。
 - 语言定义集中在 `src/codestat/core/language.py` 的 `LANGUAGES` 列表（扩展名 + 行/块注释符），`EXTENSION_MAP`/`SPECIAL_FILES` 会自动生成。
 - 排除规则合并顺序：`DEFAULT_EXCLUDE`（config.py）→ `.codestatignore` → 界面"排除项"输入。三者取并集。

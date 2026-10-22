@@ -13,7 +13,7 @@ async def test_initial_ui(flet_app: ftt.FletTestApp):
 
     # 标题与摘要文案
     assert (await tester.find_by_text("CodeStat")).count >= 1
-    assert (await tester.find_by_text("请选择目录后点击「开始统计」")).count == 1
+    assert (await tester.find_by_text("选择一个项目目录，开始分析代码规模")).count == 1
 
     # 「开始统计」按钮存在且初始禁用 (默认目录有效时除外)
     scan_btn = await tester.find_by_key("scan")
