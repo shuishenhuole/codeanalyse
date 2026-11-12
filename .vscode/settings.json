@@ -1,0 +1,28 @@
+{
+  // ==== Code Runner（Ctrl+Alt+N）====
+  // 默认对 .rs 执行 `rustc $fileName`，会绕过 Cargo，
+  // 导致 eframe / egui / rfd / image 等依赖以及 codeanalyse 这个 lib crate 全部找不到。
+  // 改用 cargo run：cargo 会从当前目录逐级向上查找 Cargo.toml，
+  // 因此无论在根目录还是 src/ 子目录里点运行都能正确工作。
+  "code-runner.executorMap": {
+    "rust": "cargo run"
+  },
+  // GUI 程序建议在终端里跑，输出面板不会卡住也不会吞掉 panic 信息
+  "code-runner.runInTerminal": true,
+  // 每次运行前不清屏，保留上一次输出便于对比
+  "code-runner.clearPreviousOutput": false,
+  // 保存文件后再运行，避免跑到旧代码
+  "code-runner.saveFileBeforeRun": true,
+
+  // ==== rust-analyzer ====
+  "rust-analyzer.cargo.targetDir": true,
+  "rust-analyzer.check.command": "clippy",
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  // 让 VS Code 认识 Rust 文件类型
+  "files.associations": {
+    "*.rs": "rust"
+  }
+}

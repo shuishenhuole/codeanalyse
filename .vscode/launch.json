@@ -1,0 +1,19 @@
+{
+  // 说明：需要先在 VS Code 扩展市场安装 CodeLLDB（作者 vadimcn.vscode-lldb）才能用。
+  // 不装的话 F5 会提示「configured debug type 'codelldb' is not supported」。
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "codelldb",
+      "request": "launch",
+      "name": "调试 CodeStat（cargo build）",
+      "cargo": {
+        "args": ["build", "--bin=codeanalyse"],
+        "filter": { "name": "codeanalyse", "kind": "bin" }
+      },
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}
