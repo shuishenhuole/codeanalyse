@@ -68,7 +68,7 @@ pub fn show(ui: &mut egui::Ui, state: &mut SidebarState<'_>) -> SidebarAction {
     ui.add_space(6.0);
     // 侧栏较窄，示例拆成两行避免截断
     ui.label(
-        RichText::new("示例: test docs dist *.min.js")
+        RichText::new("示例: test docs dist js")
             .size(11.0)
             .color(theme::MUTED),
     );
