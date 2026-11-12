@@ -1,27 +1,61 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+#
+# CodeStat 发布流水线
+# ---------------------------------------------------------------------------
+# 目标：推送 tag 后全自动完成「构建 → 打包 → 发布 GitHub Release」，人工零介入。
+#
+# 完整发版流程（三步）：
+#   1. 改版本号：Cargo.toml 的 version 与 tag 保持一致（不一致会告警）
+#   2. 提交并打 tag：git tag v0.1.0
+#   3. 推 tag：      git push origin v0.1.0
+#   推完 tag 后到仓库 Actions 页看进度，成功后 Releases 页即可下载产物。
+#
+# 产物命名规则：CodeStat-<tag>-<平台>.zip|tar.gz
+#   CodeStat-v0.1.0-windows-x64.zip
+#   CodeStat-v0.1.0-linux-x64.tar.gz
+#   CodeStat-v0.1.0-macos-arm64.tar.gz
+#
+# 为什么拆成 build / release 两个 job：
+#   三个平台并行构建用矩阵，但 Release 只能创建一次。若在每个矩阵任务里各自
+#   调用发布 action，会出现三方并发创建同一个 Release 的竞态（后写入者可能覆盖
+#   前者的产物列表）。因此固定为「矩阵产出 artifact → 单个 job 汇总发布」。
+# ---------------------------------------------------------------------------
+
 name: Release
 
-# 推送形如 v0.1.0 / v0.2.0-beta.1 的 tag 时触发
 on:
   push:
+    # 只认 v 开头的 tag，普通分支提交不会触发，避免误发版
     tags:
       - "v*"
-  # 也可以在 Actions 页面手动重跑某个 tag 的打包
+  # 手动兜底：Actions 页面点 Run workflow 可重跑（重跑时 GITHUB_REF 为该分支/tag）
   workflow_dispatch:
 
+# GitHub 默认 token 是只读的，创建 Release 与上传附件需要写权限，必须显式声明。
+# 只给 contents: write，遵循最小权限原则。
 permissions:
   contents: write
 
 env:
+  # 让 cargo 在 CI 日志里输出彩色，报错更易读
   CARGO_TERM_COLOR: always
+  # 可执行文件名（= Cargo.toml 的 package.name），下文打包脚本复用，
+  # 以后改 crate 名只需改这一处
   BIN_NAME: codeanalyse
 
 jobs:
   build:
+    # 任务名会带上平台后缀，Actions 页面一眼能区分三个并行任务
     name: Build (${{ matrix.suffix }})
     runs-on: ${{ matrix.os }}
     strategy:
+      # 关键：某个平台编译失败时，其余平台继续跑完。
+      # 否则会出现「Windows 挂了 → Linux 正常也被取消 → 一个包都发不出去」
       fail-fast: false
       matrix:
+        # 用 include 而非 platform × target 叉乘，避免生成用不到的组合。
+        # macOS 选 arm64：macos-latest 现在是 Apple Silicon，交叉编 x86_64 还需
+        # 额外装 target 且无性能收益，先只出 arm64 包。
         include:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -33,10 +67,13 @@ jobs:
             target: aarch64-apple-darwin
             suffix: macos-arm64
     steps:
+      # 取源码；tag 触发时 checkout 的是 tag 指向的提交
       - name: Checkout
         uses: actions/checkout@v4
 
-      # eframe(glow) 在 Linux 上需要 gtk / xkbcommon / xcb 等系统库
+      # eframe(glow) 在 Linux 上并非「纯 Rust」：它通过 x11-dl / gtk-sys /
+      # xkbcommon-sys 绑定系统库，缺头文件时会在 build script 阶段就失败。
+      # --no-install-recommends 可显著缩短 apt 安装时间（省掉字体、文档等推荐包）。
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -51,19 +88,30 @@ jobs:
             libx11-dev \
             pkg-config
 
+      # 用 stable 工具链而非固定小版本：本工程 edition 2024 需要 1.85+，
+      # stable 始终满足；显式写 targets 让 runner 预装交叉编译标准库
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
+      # 缓存 target/ 与 registry/。按 target 区分 key，避免三个平台互相覆盖；
+      # 默认 key 已包含 Cargo.lock 哈希，依赖变动时会自动失效重建
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
 
+      # --release：开优化（桌面程序体积/性能都比 debug 差一截）
+      # --locked：严格按 Cargo.lock 构建，保证发布产物与本地/CI 依赖完全一致，
+      #           也避免 CI 静默改 lock 导致「本地能过 CI 也能过但产物不同」
+      #           代价：改了 Cargo.toml 却没更新 lock 会直接失败 —— 这是刻意的
       - name: Build
         run: cargo build --release --locked --target ${{ matrix.target }}
 
+      # Windows 产物：把 exe 重命名成有辨识度的 CodeStat.exe，连同 LICENSE 压成 zip。
+      # 图标已用 include_bytes! 编进二进制，运行时不再依赖 assets/ 目录，
+      # 所以压缩包里只需要一个 exe。
       - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -71,14 +119,19 @@ jobs:
           $dist = "dist"
           New-Item -ItemType Directory -Path $dist -Force | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/$env:BIN_NAME.exe" "$dist/CodeStat.exe"
+          # 许可证缺失不算错误（ErrorAction SilentlyContinue），避免因小文件卡住整个发版
           Copy-Item LICENSE "$dist/" -ErrorAction SilentlyContinue
           Compress-Archive -Path "$dist/*" -DestinationPath "CodeStat-${{ github.ref_name }}-${{ matrix.suffix }}.zip"
+          # 打印产物大小，方便在日志里确认打的是 release 包而不是 debug 包
           Get-ChildItem "CodeStat-*.zip" | ForEach-Object { Write-Host $_.Name $_.Length }
 
+      # Linux / macOS 产物：tar.gz 会保留可执行权限位（zip 需要额外处理权限，
+      # 否则解压后用户得手动 chmod +x，体验差）
       - name: Package (Linux / macOS)
         if: runner.os != 'Windows'
         shell: bash
         run: |
+          # -e 出错即退出、-u 未定义变量报错、-o pipefail 管道错误不被忽略
           set -euo pipefail
           stage="CodeStat-${{ github.ref_name }}-${{ matrix.suffix }}"
           mkdir -p "$stage"
@@ -87,34 +140,47 @@ jobs:
           tar -czf "${stage}.tar.gz" "$stage"
           ls -lh "${stage}.tar.gz"
 
+      # 先把包暂存为 artifact，交给 release job 统一汇总；
+      # 不直接在这里发布，理由见文件头「为什么拆成两个 job」
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
+          # artifact 名必须唯一（v4 硬性要求），故拼上平台后缀
           name: CodeStat-${{ matrix.suffix }}
           path: |
             CodeStat-*.zip
             CodeStat-*.tar.gz
+          # 打包步骤没产出文件时直接判失败，防止发出一个「空 Release」
           if-no-files-found: error
+          # 只留 7 天：Release 里已有正式产物，artifact 仅用于 job 间中转
           retention-days: 7
 
   release:
     name: Publish GitHub Release
+    # 等三个平台全部结束；配合 fail-fast: false，只要有一个成功也会进来发布
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 只做提醒，不阻断发布：避免 tag 与 Cargo.toml 版本不一致
+      # 只做提醒、不阻断发布。
+      # 因为版本号漏改不会导致产物不可用，直接 fail 会让「急着发版」变成运维事故；
+      # 用 ::warning:: 让它在 Actions 摘要里高亮，事后补 tag 也来得及。
       - name: Warn if tag mismatches Cargo.toml version
         run: |
+          # 去掉前缀 v：v0.1.0 -> 0.1.0
           tag="${GITHUB_REF_NAME#v}"
+          # 取第一个以 version 开头的行，抽出引号里的值
           ver=$(grep -m1 '^version' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
           echo "tag=$GITHUB_REF_NAME  cargo=$ver"
           if [ "$tag" != "$ver" ]; then
             echo "::warning::tag $GITHUB_REF_NAME 与 Cargo.toml 版本 $ver 不一致"
           fi
 
+      # merge-multiple: 把三个平台的 artifact 摊平到同一个目录，
+      # 否则会得到 artifacts/CodeStat-windows-x64/xxx.zip 这种多一层嵌套，
+      # 后面的 glob 就匹配不到了
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -125,10 +191,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: CodeStat ${{ github.ref_name }}
-          # 自动根据 commit / PR 生成发布说明
+          # 自动根据「上次发布以来的 commit / PR」生成变更说明，省掉手写 changelog
           generate_release_notes: true
-          # tag 里带 - 的（如 v0.2.0-beta.1）自动标记为预发布
+          # tag 里带 - 的（如 v0.2.0-beta.1）自动标记为预发布，不计入 latest
           prerelease: ${{ contains(github.ref_name, '-') }}
+          # 附件匹配不到文件时直接失败；否则会出现「Release 建好了但没有附件」
+          # 这种更隐蔽、更难排查的半成功状态
           fail_on_unmatched_files: true
           files: |
             artifacts/CodeStat-*.zip
