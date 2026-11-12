@@ -344,6 +344,14 @@ impl Docx {
             .push_str("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
     }
 
+    /// 水平分割线（用段落底边框模拟）
+    pub fn horizontal_rule(&mut self) {
+        self.body.push_str(
+            "<w:p><w:pPr><w:pBdr><w:bottom w:val=\"single\" w:sz=\"6\" w:space=\"1\" w:color=\"D1D5DB\"/></w:pBdr>\
+             <w:spacing w:before=\"160\" w:after=\"160\"/></w:pPr></w:p>",
+        );
+    }
+
     /// 插入图片，返回是否成功
     pub fn image(
         &mut self,
