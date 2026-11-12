@@ -2,5 +2,16 @@
 name = "codeanalyse"
 version = "0.1.0"
 edition = "2024"
+description = "CodeStat - 基于 egui 的代码量统计桌面工具"
 
 [dependencies]
+# 桌面框架：使用 OpenGL(glow) 后端，避免引入整套 wgpu 依赖
+eframe = { version = "=0.36.2", default-features = false, features = ["glow", "default_fonts"] }
+egui = "=0.36.2"
+# 系统原生文件对话框
+rfd = { version = "=0.17.2", default-features = false }
+# docx 本质是 zip 包，这里用 Stored 方式写入，无需压缩后端
+zip = { version = "=2.4.2", default-features = false }
+serde_json = "1"
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
+base64 = "0.22"
