@@ -16,7 +16,6 @@ pub const VALUE: Color32 = Color32::from_rgb(0xF7, 0xF9, 0xFC);
 pub const SUBTEXT: Color32 = Color32::from_rgb(0x9C, 0xA3, 0xAF);
 pub const MUTED: Color32 = Color32::from_rgb(0x6B, 0x72, 0x80);
 pub const PRIMARY: Color32 = Color32::from_rgb(0x56, 0x85, 0xFF);
-pub const PRIMARY_HOVER: Color32 = Color32::from_rgb(0x6E, 0x97, 0xFF);
 pub const ICON: Color32 = Color32::from_rgb(0x8F, 0xB0, 0xFF);
 pub const BTN_SECONDARY_TEXT: Color32 = Color32::from_rgb(0xD1, 0xD5, 0xDB);
 pub const ERROR: Color32 = Color32::from_rgb(0xF8, 0x71, 0x71);
@@ -155,11 +154,37 @@ pub fn section_label(ui: &mut egui::Ui, text: &str) {
     ui.label(egui::RichText::new(text).size(11.0).strong().color(SUBTEXT));
 }
 
-/// 带边框的卡片容器
-pub fn card_frame() -> egui::Frame {
-    egui::Frame::new()
-        .fill(CARD_BG)
-        .stroke(Stroke::new(1.0, THIN_BORDER))
-        .corner_radius(CornerRadius::same(11))
-        .inner_margin(egui::Margin::same(16))
+/// 深色单行输入框：外框负责配色，内层 TextEdit 去掉默认背景
+///
+/// `width` 为外框目标宽度；侧边栏与对话框共用，保证控件外观一致。
+pub fn dark_input(ui: &mut egui::Ui, value: &mut String, hint: &str, width: f32) {    egui::Frame::new()
+        .fill(BG)
+        .stroke(Stroke::new(1.0, DIVIDER))
+        .corner_radius(CornerRadius::same(8))
+        .inner_margin(egui::Margin {
+            left: 10,
+            right: 10,
+            top: 0,
+            bottom: 0,
+        })
+        .show(ui, |ui| {
+            ui.add_sized(
+                [width - 20.0, 40.0],
+                egui::TextEdit::singleline(value)
+                    .hint_text(hint)
+                    .frame(egui::Frame::NONE)
+                    .vertical_align(egui::Align::Center),
+            );
+        });
+}
+
+/// 加载应用图标为 egui 纹理，失败时返回 None（侧边栏会退回纯色方块）
+pub fn load_logo(ctx: &egui::Context) -> Option<egui::TextureHandle> {
+    let image = image::load_from_memory(include_bytes!("../assets/icon.png"))
+        .ok()?
+        .to_rgba8();
+    let size = [image.width() as usize, image.height() as usize];
+    let pixels = image.into_raw();
+    let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &pixels);
+    Some(ctx.load_texture("app-logo", color_image, egui::TextureOptions::LINEAR))
 }
