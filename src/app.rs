@@ -7,6 +7,7 @@
 
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::theme;
@@ -42,8 +43,12 @@ pub struct CodeStatApp {
     scan_rx: Option<Receiver<Vec<LangStat>>>,
     /// 轻提示
     toast: Option<Toast>,
-    /// Markdown 转 Word 对话框（None 表示未打开）
-    dialog: Option<MarkdownDialog>,
+    /// Markdown 转 Word 独立窗口是否打开
+    md_window_open: bool,
+    /// Markdown 转 Word 状态（窗口关闭后保留，再次打开时恢复上次输入）
+    dialog: MarkdownDialog,
+    /// 窗口图标（PNG 数据），主窗口与工具窗口标题栏共用
+    window_icon: Option<Arc<egui::IconData>>,
     /// 应用图标纹理
     logo: Option<egui::TextureHandle>,
 }
@@ -63,7 +68,11 @@ impl CodeStatApp {
             hint: "选择一个项目目录，开始分析代码规模".to_owned(),
             scan_rx: None,
             toast: None,
-            dialog: None,
+            md_window_open: false,
+            dialog: MarkdownDialog::new(),
+            window_icon: eframe::icon_data::from_png_bytes(include_bytes!("../assets/icon.png"))
+                .ok()
+                .map(Arc::new),
             logo: theme::load_logo(&cc.egui_ctx),
         }
     }
@@ -321,7 +330,7 @@ impl eframe::App for CodeStatApp {
             self.start_scan(&ctx);
         }
         if open_markdown {
-            self.dialog = Some(MarkdownDialog::new());
+            self.md_window_open = true;
         }
 
         // ==================== 主内容区 ====================
@@ -351,19 +360,29 @@ impl eframe::App for CodeStatApp {
             self.export(kind);
         }
 
-        // ==================== Markdown 转 Word 对话框 ====================
-        let mut dialog_open = true;
-        let done = if let Some(dialog) = self.dialog.as_mut() {
-            dialog.show(&ctx, &mut dialog_open)
-        } else {
-            None
-        };
-        if let Some(message) = done {
-            self.set_status(message.clone());
-            self.show_toast(message);
-        }
-        if !dialog_open {
-            self.dialog = None;
+        // ==================== Markdown 转 Word（独立系统窗口） ====================
+        // immediate viewport：每帧调用一次即可让窗口保持存在；
+        // 停止调用即关闭。若后端不支持多窗口会自动退化为应用内弹窗。
+        if self.md_window_open {
+            let mut builder = egui::ViewportBuilder::default()
+                .with_title("Markdown 转 Word")
+                .with_inner_size([620.0, 430.0])
+                .with_min_inner_size([520.0, 380.0]);
+            if let Some(icon) = self.window_icon.clone() {
+                builder = builder.with_icon(icon);
+            }
+            let outcome = ctx.show_viewport_immediate(
+                egui::ViewportId(egui::Id::new("markdown-to-word")),
+                builder,
+                |ui, _class| self.dialog.render(ui),
+            );
+            if let Some(message) = outcome.done {
+                self.set_status(message.clone());
+                self.show_toast(message);
+            }
+            if outcome.close {
+                self.md_window_open = false;
+            }
         }
 
         self.draw_toast(&ctx);

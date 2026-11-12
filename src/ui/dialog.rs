@@ -1,10 +1,14 @@
-//! Markdown 转 Word 对话框
+//! Markdown 转 Word 工具窗口
 //!
 //! 对应 Python 版 `codestat/ui/md2docx_dialog.py`：选择输入/输出路径，
 //! 执行转换并把结果回传给主界面。
 //!
+//! 与旧版「应用内 egui::Window 弹窗」不同，本模块通过 egui 的
+//! immediate viewport 渲染在一个**独立的系统窗口**里：拥有原生标题栏、
+//! 可独立移动/调整大小，不遮挡主界面，可在任务栏单独切换。
+//!
 //! 转换本身是同步调用（读文件 + 生成 docx 通常很快），
-//! 因此这里不引入额外线程，保持对话框状态简单可控。
+//! 因此这里不引入额外线程，保持状态简单可控。
 
 use std::path::{Path, PathBuf};
 
@@ -14,13 +18,23 @@ use codeanalyse::markdown::convert_markdown_to_docx;
 
 use crate::theme;
 
-/// Markdown 转 Word 对话框状态
+/// 一次渲染的产出，由 `app` 决定后续行为
+pub struct DialogOutcome {
+    /// 转换成功信息（供主窗口状态栏与 toast 展示）
+    pub done: Option<String>,
+    /// 是否应关闭窗口（用户点了 X / 取消 / 转换成功）
+    pub close: bool,
+}
+
+/// Markdown 转 Word 工具窗口状态
+///
+/// 状态在窗口关闭后仍由 app 持有，再次打开时保留上次的路径选择。
 pub struct MarkdownDialog {
     /// 上次选择的 Markdown 文件
     md_path: String,
     /// 输出 docx 路径
     out_path: String,
-    /// 对话框内状态提示
+    /// 窗口内状态提示
     status: String,
     /// 状态提示是否为错误
     error: bool,
@@ -45,27 +59,31 @@ impl MarkdownDialog {
         }
     }
 
-    /// 绘制对话框
+    /// 渲染工具窗口内容（在独立 viewport 的根 Ui 上调用）
     ///
-    /// `open` 由主界面持有；用户关闭窗口或转换成功后会置为 false。
-    /// 返回转换成功时的提示文案，供状态栏与 toast 使用。
-    pub fn show(&mut self, ctx: &egui::Context, open: &mut bool) -> Option<String> {
-        let mut is_open = *open;
-        let mut close_requested = false;
-        let mut done = None;
+    /// 返回 [`DialogOutcome`]：app 据此展示提示并决定窗口去留。
+    /// 原生标题栏的关闭按钮通过 `close_requested` 输入检测。
+    pub fn render(&mut self, ui: &mut egui::Ui) -> DialogOutcome {
+        let mut outcome = DialogOutcome {
+            done: None,
+            close: false,
+        };
+        // 用户点击了系统标题栏的 X
+        let close_requested = ui.ctx().input(|input| input.viewport().close_requested());
 
-        egui::Window::new("Markdown 转 Word")
-            .open(&mut is_open)
-            .collapsible(false)
-            .resizable(false)
-            .default_width(540.0)
-            .show(ctx, |ui| {
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::new()
+                    .fill(theme::BG)
+                    .inner_margin(egui::Margin::same(20)),
+            )
+            .show(ui, |ui| {
                 ui.label(
                     RichText::new("支持标题、列表、表格、代码块、引用、链接与本地图片。")
                         .size(12.0)
                         .color(theme::SUBTEXT),
                 );
-                ui.add_space(12.0);
+                ui.add_space(16.0);
 
                 // ==================== 输入文件 ====================
                 theme::section_label(ui, "Markdown 文件");
@@ -95,12 +113,12 @@ impl MarkdownDialog {
                             }
                             self.status.clear();
                             self.error = false;
-                            ctx.request_repaint();
+                            ui.ctx().request_repaint();
                         }
                     }
                 });
 
-                ui.add_space(12.0);
+                ui.add_space(16.0);
 
                 // ==================== 输出文件 ====================
                 theme::section_label(ui, "输出文件");
@@ -133,12 +151,12 @@ impl MarkdownDialog {
                             self.auto_output = false;
                             self.status.clear();
                             self.error = false;
-                            ctx.request_repaint();
+                            ui.ctx().request_repaint();
                         }
                     }
                 });
 
-                ui.add_space(10.0);
+                ui.add_space(12.0);
                 if !self.status.is_empty() {
                     ui.label(
                         RichText::new(&self.status)
@@ -152,41 +170,42 @@ impl MarkdownDialog {
                 }
 
                 // ==================== 操作按钮 ====================
-                ui.add_space(14.0);
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui
-                        .add_sized([104.0, 36.0], primary_button("开始转换"))
-                        .clicked()
-                    {
-                        match self.convert() {
-                            Ok(message) => {
-                                self.status = message.clone();
-                                self.error = false;
-                                done = Some(message);
-                                close_requested = true;
-                            }
-                            Err(message) => {
-                                self.status = message;
-                                self.error = true;
+                // 撑到底部，让按钮组固定贴住窗口下缘
+                ui.with_layout(Layout::bottom_up(Align::Center), |ui| {
+                    ui.add_space(4.0);
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if ui
+                            .add_sized([104.0, 36.0], primary_button("开始转换"))
+                            .clicked()
+                        {
+                            match self.convert() {
+                                Ok(message) => {
+                                    self.status = message.clone();
+                                    self.error = false;
+                                    outcome.done = Some(message);
+                                    outcome.close = true;
+                                }
+                                Err(message) => {
+                                    self.status = message;
+                                    self.error = true;
+                                }
                             }
                         }
-                    }
-                    if ui
-                        .add_sized([72.0, 36.0], secondary_button("取消"))
-                        .clicked()
-                    {
-                        close_requested = true;
-                    }
+                        if ui
+                            .add_sized([72.0, 36.0], secondary_button("取消"))
+                            .clicked()
+                        {
+                            outcome.close = true;
+                        }
+                    });
+                    ui.add_space(6.0);
                 });
             });
 
-        if !is_open {
-            close_requested = true;
-        }
         if close_requested {
-            *open = false;
+            outcome.close = true;
         }
-        done
+        outcome
     }
 
     /// 执行转换并按结果更新内部状态
