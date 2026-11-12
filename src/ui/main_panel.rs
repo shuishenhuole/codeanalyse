@@ -52,16 +52,39 @@ pub fn show(ui: &mut egui::Ui, state: &MainPanelState<'_>) -> MainPanelAction {
     ui.add_space(16.0);
 
     // ==================== 概览卡片 ====================
+    // 列数随面板宽度自适应：宽 → 4 列；变窄 → 2×2；极窄 → 纵向堆叠。
+    // 高 DPI 小窗口下每列分到的宽度可能小于卡片内容的最小宽度，
+    // 固定 4 列会把卡片挤压换行甚至溢出面板，因此按宽度降级列数。
     let gap = 16.0;
-    let card_width = (ui.available_width() - gap * 3.0) / 4.0;
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = gap;
+    let available = ui.available_width();
+    let columns = if available >= 500.0 {
+        4
+    } else if available >= 300.0 {
+        2
+    } else {
+        1
+    };
+    let cards = [
         // 图标使用 CJK 字体必定覆盖的汉字，避免符号缺字形显示为方块
-        stat_card(ui, card_width, "文", "文件总数", &format_number(files), !state.results.is_empty());
-        stat_card(ui, card_width, "</>", "代码行数", &format_number(totals.code), !state.results.is_empty());
-        stat_card(ui, card_width, "//", "注释行数", &format_number(totals.comment), !state.results.is_empty());
-        stat_card(ui, card_width, "空", "空行数", &format_number(totals.blank), !state.results.is_empty());
-    });
+        ("文", "文件总数", format_number(files)),
+        ("</>", "代码行数", format_number(totals.code)),
+        ("//", "注释行数", format_number(totals.comment)),
+        ("空", "空行数", format_number(totals.blank)),
+    ];
+    let has_result = !state.results.is_empty();
+    for (row_index, chunk) in cards.chunks(columns).enumerate() {
+        if row_index > 0 {
+            ui.add_space(gap);
+        }
+        let card_width =
+            (available - gap * (chunk.len() - 1) as f32) / chunk.len() as f32;
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = gap;
+            for (icon, label, value) in chunk {
+                stat_card(ui, card_width, icon, label, value, has_result);
+            }
+        });
+    }
 
     ui.add_space(16.0);
 
@@ -158,6 +181,10 @@ fn header_row(ui: &mut egui::Ui, export_enabled: bool, action: &mut MainPanelAct
 }
 
 /// 单张概览卡片：图标块 + 数值 + 标签
+///
+/// 内容是固定最小宽度的，而 `width` 由可用宽度均分而来；
+/// 窗口较窄时若不缩小内部元素，内容会把卡片撑开，导致整行溢出被截断。
+/// 因此按宽度分两档：常规 / 紧凑（缩小图标、字号与内边距）。
 fn stat_card(
     ui: &mut egui::Ui,
     width: f32,
@@ -166,40 +193,62 @@ fn stat_card(
     value: &str,
     has_value: bool,
 ) {
-    egui::Frame::new()
-        .fill(theme::CARD_BG)
-        .stroke(Stroke::new(1.0, theme::THIN_BORDER))
-        .corner_radius(CornerRadius::same(11))
-        .inner_margin(Margin {
+    // 卡片内边距：紧凑档从 16 收窄到 12
+    let margin = if width < 150.0 {
+        Margin::same(12)
+    } else {
+        Margin {
             left: 16,
             right: 16,
             top: 14,
             bottom: 14,
-        })
+        }
+    };
+    let inner_width = width - (margin.left + margin.right) as f32;
+
+    // 尺寸分档：窄卡片用更小的图标块与数值字号
+    let compact = width < 150.0;
+    let icon_box = if compact { 30.0 } else { 38.0 };
+    let icon_font = if compact { 12.0 } else { 14.0 };
+    let value_size = if compact { 20.0 } else { 28.0 };
+    let label_size = if compact { 11.0 } else { 12.5 };
+    let icon_radius = if compact { 7 } else { 9 };
+
+    egui::Frame::new()
+        .fill(theme::CARD_BG)
+        .stroke(Stroke::new(1.0, theme::THIN_BORDER))
+        .corner_radius(CornerRadius::same(11))
+        .inner_margin(margin)
         .show(ui, |ui| {
-            ui.set_width(width - 32.0);
-            ui.horizontal(|ui| {
+            // set_width 只是「最小宽度」，内容超出会撑开卡片，故先保证内容 < inner_width
+            ui.set_width(inner_width);
+            // 覆盖继承自外层横向布局的大间距（16px），卡片内部统一用小间距
+            ui.spacing_mut().item_spacing.x = 10.0;
+            // 图标块与文字整体垂直居中
+            ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                 let (rect, _) =
-                    ui.allocate_exact_size(vec2(38.0, 38.0), Sense::hover());
-                ui.painter()
-                    .rect_filled(rect, CornerRadius::same(9), theme::tint(theme::PRIMARY, 26));
+                    ui.allocate_exact_size(vec2(icon_box, icon_box), Sense::hover());
+                ui.painter().rect_filled(
+                    rect,
+                    CornerRadius::same(icon_radius),
+                    theme::tint(theme::PRIMARY, 26),
+                );
                 ui.painter().text(
                     rect.center(),
                     Align2::CENTER_CENTER,
                     icon,
-                    FontId::proportional(14.0),
+                    FontId::proportional(icon_font),
                     theme::ICON,
                 );
 
-                ui.add_space(4.0);
                 ui.vertical(|ui| {
                     ui.label(
                         RichText::new(value)
-                            .size(28.0)
+                            .size(value_size)
                             .strong()
                             .color(if has_value { theme::VALUE } else { theme::MUTED }),
                     );
-                    ui.label(RichText::new(label).size(12.5).color(theme::SUBTEXT));
+                    ui.label(RichText::new(label).size(label_size).color(theme::SUBTEXT));
                 });
             });
         });
