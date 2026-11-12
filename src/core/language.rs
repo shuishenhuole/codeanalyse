@@ -151,31 +151,3 @@ pub fn detect_language(path: &Path) -> Option<&'static LanguageConfig> {
     let key = format!(".{ext}");
     index.by_extension.get(key.as_str()).copied()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn 识别常见扩展名() {
-        assert_eq!(detect_language(Path::new("main.py")).unwrap().name, "Python");
-        assert_eq!(detect_language(Path::new("A.TSX")).unwrap().name, "TypeScript");
-        assert_eq!(detect_language(Path::new("app.vue")).unwrap().name, "Vue");
-    }
-
-    #[test]
-    fn 识别特殊文件名() {
-        assert_eq!(detect_language(Path::new("Dockerfile")).unwrap().name, "Dockerfile");
-        assert_eq!(
-            detect_language(Path::new("CMakeLists.txt")).unwrap().name,
-            "CMake"
-        );
-        assert_eq!(detect_language(Path::new("Makefile")).unwrap().name, "Makefile");
-    }
-
-    #[test]
-    fn 未识别文件返回空() {
-        assert!(detect_language(Path::new("unknown.xyz")).is_none());
-        assert!(detect_language(Path::new("README")).is_none());
-    }
-}

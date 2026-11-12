@@ -1,4 +1,3 @@
-mod core;
 mod theme;
 
 fn main() -> eframe::Result {

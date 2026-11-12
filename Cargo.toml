@@ -13,5 +13,5 @@ rfd = { version = "=0.17.2", default-features = false }
 # docx 本质是 zip 包，这里用 Stored 方式写入，无需压缩后端
 zip = { version = "=2.4.2", default-features = false }
 serde_json = "1"
-image = { version = "=0.25.10", default-features = false, features = ["png"] }
+image = { version = "=0.25.10", default-features = false, features = ["png", "jpeg"] }
 base64 = "0.22"
