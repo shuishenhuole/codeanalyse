@@ -30,8 +30,8 @@ fn main() -> eframe::Result {
 struct PlaceholderApp;
 
 impl eframe::App for PlaceholderApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("CodeStat - 代码量统计工具");
         });
     }

@@ -69,11 +69,13 @@ pub fn visuals() -> Visuals {
 pub fn setup(ctx: &egui::Context) {
     install_cjk_font(ctx);
 
-    let mut style = (*ctx.style()).clone();
-    style.spacing.item_spacing = egui::vec2(8.0, 8.0);
-    style.spacing.button_padding = egui::vec2(10.0, 6.0);
-    style.visuals = visuals();
-    ctx.set_style(style);
+    // 0.36 起样式按明暗主题分别存放，两个主题都写入同一套深色配置
+    ctx.set_theme(egui::Theme::Dark);
+    ctx.all_styles_mut(|style| {
+        style.spacing.item_spacing = egui::vec2(8.0, 8.0);
+        style.spacing.button_padding = egui::vec2(10.0, 6.0);
+        style.visuals = visuals();
+    });
 }
 
 /// egui 内置字体不含 CJK 字形，运行时加载系统中文字体作为主字体
